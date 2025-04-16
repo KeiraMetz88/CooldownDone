@@ -41,28 +41,18 @@ function LibBlzSettingsEditboxControlMixin:Init(initializer)
     SettingsControlMixin.Init(self, initializer);
 
     local setting = self:GetSetting();
-    local options = initializer:GetOptions();
-    local initTooltip = Settings.CreateOptionsInitTooltip(setting, initializer:GetName(), initializer:GetTooltip(), options);
-
+    local initTooltip = GenerateClosure(Settings.InitTooltip, initializer:GetName(), initializer:GetTooltip());
     self.Editbox:Init(setting:GetValue(), initTooltip);
-	
     self.cbrHandles:RegisterCallback(self.Editbox, LibBlzSettingsEditboxMixin.Event.OnValueChanged, self.OnEditboxValueChanged, self);
-
     self:EvaluateState();
 end
 
 function LibBlzSettingsEditboxControlMixin:OnSettingValueChanged(setting, value)
     SettingsControlMixin.OnSettingValueChanged(self, setting, value);
-
-    self.Editbox:SetText(value);
 end
 
 function LibBlzSettingsEditboxControlMixin:OnEditboxValueChanged(value)
     self:GetSetting():SetValue(value);
-end
-
-function LibBlzSettingsEditboxControlMixin:SetValue(value)
-    self.Editbox:SetText(value);
 end
 
 function LibBlzSettingsEditboxControlMixin:EvaluateState()
@@ -85,9 +75,9 @@ function LibBlzSettingsCheckboxEditboxControlMixin:OnLoad()
     self.Checkbox = CreateFrame("CheckButton", nil, self, "SettingsCheckboxTemplate");
     self.Checkbox:SetPoint("LEFT", self, "CENTER", -80, 0);
 
-    self.Control = CreateFrame("Frame", nil, self, "LibBlzSettingsEditboxTemplate");
-    self.Control:SetPoint("LEFT", self.Checkbox, "RIGHT", 32, 0);
-    self.Control:SetWidth(220);
+    self.Control = CreateFrame("EditBox", nil, self, "LibBlzSettingsEditboxTemplate");
+    self.Control:SetPoint("LEFT", self.Checkbox, "RIGHT", 10, 0);
+    self.Control:SetWidth(200);
 
     Mixin(self.Control, DefaultTooltipMixin);
 
@@ -114,7 +104,8 @@ function LibBlzSettingsCheckboxEditboxControlMixin:Init(initializer)
     self.Checkbox:Init(cbSetting:GetValue(), initCheckboxTooltip);
     self.cbrHandles:RegisterCallback(self.Checkbox, SettingsCheckboxMixin.Event.OnValueChanged, self.OnCheckboxValueChanged, self);
 
-    self.Control:Init(editboxSetting:GetValue(), editboxTooltip);
+    local initEditboxTooltip = GenerateClosure(Settings.InitTooltip, editboxLabel, editboxTooltip);
+    self.Control:Init(editboxSetting:GetValue(), initEditboxTooltip);
     self.cbrHandles:RegisterCallback(self.Control, LibBlzSettingsEditboxMixin.Event.OnValueChanged, self.OnEditboxValueChanged, self);
     self.Control:SetEnabled(cbSetting:GetValue());
 end

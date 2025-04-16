@@ -9,8 +9,32 @@
         </Scripts>
     </Frame>
 
-    <EditBox name="LibBlzSettingsEditboxTemplate" mixin="LibBlzSettingsEditboxMixin" inherits="LargeInputBoxTemplate" autoFocus="false" virtual="true">
-        <Size x="280" y="29"/>
+    <EditBox name="LibBlzSettingsEditboxTemplate" mixin="LibBlzSettingsEditboxMixin" inherits="InputBoxScriptTemplate" autoFocus="false" virtual="true">
+        <Size x="280" y="26"/>
+        <Layers>
+            <Layer level="BACKGROUND">
+                <Texture parentKey="Left" atlas="common-search-border-left" useAtlasSize="false">
+                    <Size x="8" y="26"/>
+                    <Anchors>
+                        <Anchor point="LEFT" x="-5" y="0"/>
+                    </Anchors>
+                </Texture>
+                <Texture parentKey="Right" atlas="common-search-border-right">
+                    <Size x="8" y="26"/>
+                    <Anchors>
+                        <Anchor point="RIGHT" x="0" y="0"/>
+                    </Anchors>
+                </Texture>
+                <Texture parentKey="Middle" atlas="common-search-border-middle">
+                    <Size x="10" y="26"/>
+                    <Anchors>
+                        <Anchor point="LEFT" relativeKey="$parent.Left" relativePoint="RIGHT"/>
+                        <Anchor point="RIGHT" relativeKey="$parent.Right" relativePoint="LEFT"/>
+                    </Anchors>
+                </Texture>
+            </Layer>
+        </Layers>
+        <FontString inherits="ChatFontNormal"/>
         <Scripts>
             <OnLoad method="OnLoad"/>
             <OnEnter method="OnEnter"/>

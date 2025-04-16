@@ -427,7 +427,7 @@ local CONTROL_TYPE_METADATA = {
         },
         buildFunction = function (addOnName, category, layout, dataTbl, database)
             local setting = Utils.RegisterSetting(addOnName, category, dataTbl, database, Settings.VarType.String)
-            local initializer = Settings.CreateControlInitializer("LibBlzSettingsEditboxControlTemplate", setting, nil, tooltip)
+            local initializer = Settings.CreateControlInitializer("LibBlzSettingsEditboxControlTemplate", setting, nil, dataTbl.tooltip)
             initializer:AddSearchTags(dataTbl.name)
             layout:AddInitializer(initializer)
             return setting, initializer
