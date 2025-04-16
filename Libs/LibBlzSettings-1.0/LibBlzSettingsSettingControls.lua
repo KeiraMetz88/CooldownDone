@@ -34,7 +34,7 @@ function LibBlzSettingsEditboxControlMixin:OnLoad()
     SettingsControlMixin.OnLoad(self);
 
     self.Editbox = CreateFrame("EditBox", nil, self, "LibBlzSettingsEditboxTemplate");
-    self.Editbox:SetPoint("LEFT", self, "CENTER", -80, 0);
+    self.Editbox:SetPoint("LEFT", self, "CENTER", -72, 0);
 end
 
 function LibBlzSettingsEditboxControlMixin:Init(initializer)
