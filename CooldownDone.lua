@@ -29,7 +29,7 @@ function CooldownDone:getPlayerSpellBookSpells()
                     table.insert(self.spells, {
                         id = info.actionID,
                         name = s.name,
-						texture = C_Spell.GetSpellTexture(info.actionID)
+                        texture = C_Spell.GetSpellTexture(info.actionID)
                     })
                 end
             end
@@ -48,7 +48,7 @@ function CooldownDone:getEquippedItemSpells()
                 table.insert(self.spells, {
                     id = spellID,
                     name = sName,
-					texture = C_Item.GetItemIconByID(itemID)
+                    texture = C_Item.GetItemIconByID(itemID)
                 })
             end
         end
@@ -56,41 +56,41 @@ function CooldownDone:getEquippedItemSpells()
 end
 
 function CooldownDone:speakTTS(text)
-	C_VoiceChat.SpeakText(2, text, Enum.VoiceTtsDestination.QueuedLocalPlayback, 0, 100)
+    C_VoiceChat.SpeakText(2, text, Enum.VoiceTtsDestination.QueuedLocalPlayback, 0, 100)
 end
 
 function CooldownDone:trackCooldownDone(spellID)
-	local key = string.format("CooldownDone.spell.%s.enable", spellID)
-	--print(CooldownDoneDB[key])
-	if not CooldownDoneDB or not CooldownDoneDB[key] then return end
-	C_Timer.After(2, function()
-		local spellCooldownInfo  = C_Spell.GetSpellCooldown(spellID) or {startTime=0,duration=0,isEnabled=false,modRate=1}
-		--print(spellID,spellCooldownInfo.startTime,spellCooldownInfo.duration,spellCooldownInfo.isEnabled,spellCooldownInfo.modRate)
-		if spellCooldownInfo.startTime > 0 and spellCooldownInfo.duration > 0 then
-			self.cooldownFrames[spellID] = self.cooldownFrames[spellID] or CreateFrame("Cooldown", nil)
-			self.cooldownFrames[spellID]:SetCooldown(spellCooldownInfo.startTime, spellCooldownInfo.duration, spellCooldownInfo.modRate)
-			self.cooldownFrames[spellID]:SetScript("OnCooldownDone",function()
-				--print(GetTime(),"OnCooldownDone")
-				local name = C_Spell.GetSpellName(spellID) or "未知法术"
-				self:speakTTS(name .. "就绪")
-				self.cooldownFrames[spellID]:SetScript("OnCooldownDone", nil);
-			end)
-		end
-	end)
+    local key = string.format("CooldownDone.spell.%s.enable", spellID)
+    --print(CooldownDoneDB[key])
+    if not CooldownDoneDB or not CooldownDoneDB[key] then return end
+    C_Timer.After(2, function()
+        local spellCooldownInfo  = C_Spell.GetSpellCooldown(spellID) or {startTime=0,duration=0,isEnabled=false,modRate=1}
+        --print(spellID,spellCooldownInfo.startTime,spellCooldownInfo.duration,spellCooldownInfo.isEnabled,spellCooldownInfo.modRate)
+        if spellCooldownInfo.startTime > 0 and spellCooldownInfo.duration > 0 then
+            self.cooldownFrames[spellID] = self.cooldownFrames[spellID] or CreateFrame("Cooldown", nil)
+            self.cooldownFrames[spellID]:SetCooldown(spellCooldownInfo.startTime, spellCooldownInfo.duration, spellCooldownInfo.modRate)
+            self.cooldownFrames[spellID]:SetScript("OnCooldownDone",function()
+                --print(GetTime(),"OnCooldownDone")
+                local name = C_Spell.GetSpellName(spellID) or "未知法术"
+                self:speakTTS(name .. "就绪")
+                self.cooldownFrames[spellID]:SetScript("OnCooldownDone", nil);
+            end)
+        end
+    end)
 end
 
 function CooldownDone:prepareSettings()
     local LibBlzSettings = LibStub("LibBlzSettings-1.0")
     local CONTROL_TYPE = LibBlzSettings.CONTROL_TYPE
     local SETTING_TYPE = LibBlzSettings.SETTING_TYPE
-	local settings = {
+    local settings = {
         name = "CD就绪",
         settings = {
-		}
+        }
     }
-	for _, spell in ipairs(self.spells) do
-		local key = string.format("CooldownDone.spell.%s.enable", spell.id)
-		table.insert(settings.settings, {
+    for _, spell in ipairs(self.spells) do
+        local key = string.format("CooldownDone.spell.%s.enable", spell.id)
+        table.insert(settings.settings, {
             controlType = CONTROL_TYPE.CHECKBOX,
             settingType = SETTING_TYPE.ADDON_VARIABLE,
             name = spell.name .. "|T"..spell.texture..":15:15:1:0|t",
@@ -98,7 +98,7 @@ function CooldownDone:prepareSettings()
             key = key,
             default = false
         })
-	end
+    end
     LibBlzSettings:RegisterVerticalSettingsTable(ADDON_NAME, settings, CooldownDoneDB, true)
 end
 
@@ -115,9 +115,9 @@ frame:SetScript("OnEvent", function(self, event, ...)
         end
     elseif event == "PLAYER_ENTERING_WORLD" then
         CooldownDone:getPlayerSpellBookSpells()
-		CooldownDone:getEquippedItemSpells()
-		table.sort(CooldownDone.spells, function(a, b) return a.name:lower() < b.name:lower() end)
-		CooldownDone:prepareSettings()
+        CooldownDone:getEquippedItemSpells()
+        table.sort(CooldownDone.spells, function(a, b) return a.name:lower() < b.name:lower() end)
+        CooldownDone:prepareSettings()
     elseif event == "UNIT_SPELLCAST_SUCCEEDED" then
         local unitTarget, _, spellID = ...
         if unitTarget == "player" then
