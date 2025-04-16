@@ -502,7 +502,7 @@ local function SetupControl(addOnName, category, layout, dataTbl, database)
                     end
 
                     for _, subDataTbl in ipairs(dataTbl.subSettings) do
-                        local _, subInitializer = SetupControl(addOnName, category, layout, subDataTbl, database)
+                        local _, subInitializer = SetupControl(addOnName, category, layout, subDataTbl, subDataTbl.database or database)
                         if subInitializer and isModifiable then
                             subInitializer:SetParentInitializer(initializer, isModifiable)
                         end
@@ -526,14 +526,14 @@ local function BuildCategory(addOnName, dataTbl, database, parentCategory)
     -- 注册设置项目
     if type(dataTbl.settings) == "table" then
         for _, settingDataTbl in ipairs(dataTbl.settings) do
-            SetupControl(addOnName, category, layout, settingDataTbl, database)
+            SetupControl(addOnName, category, layout, settingDataTbl, settingDataTbl.database or database)
         end
     end
 
     -- 注册子选项菜单
     if not parentCategory and type(dataTbl.subCategorys) == "table" then
         for _, subDataTbl in ipairs(dataTbl.subCategorys) do
-            BuildCategory(addOnName, subDataTbl, database, category)
+            BuildCategory(addOnName, subDataTbl, subDataTbl.database or database, category)
         end
     end
 

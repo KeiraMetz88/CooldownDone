@@ -6,7 +6,9 @@
 ## Notes: 语音通报CD就绪
 ## Author: KeiraMetz
 
-## SavedVariablesPerCharacter: CooldownDoneDB
+## SavedVariables: CooldownDoneDB
+## SavedVariablesPerCharacter: CooldownDoneCharDB
 
 Libs\libs.xml
 CooldownDone.lua
+Settings.lua
