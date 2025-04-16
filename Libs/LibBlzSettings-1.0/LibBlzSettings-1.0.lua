@@ -26,6 +26,8 @@ LibBlzSettings.CONTROL_TYPE = {
     CHECKBOX_AND_SLIDER = 6,            -- 选择框和滑动条
     BUTTON = 7,                         -- 按钮
     CHECKBOX_AND_BUTTON = 8,            -- 选择框和按钮
+    EDITBOX = 9,                        -- 输入框
+    CHECKBOX_AND_EDITBOX = 10,          -- 选择框和输入框
 
     CUSTOM_FRAME = 51,                  -- 自定义框体
     LIB_SHARED_MEDIA_DROPDOWN = 101,    -- 下拉菜单用以选择一种LibSharedMedia素材类型, 需要LibSharedMedia-3.0库(这应当在你的插件中包含), 否则不会显示
@@ -418,7 +420,46 @@ local CONTROL_TYPE_METADATA = {
             end
             ]]
         end
-    }
+    },
+    [CONTROL_TYPE.EDITBOX] = {
+        setting = {
+            varType = Settings.VarType.String
+        },
+        buildFunction = function (addOnName, category, layout, dataTbl, database)
+            local setting = Utils.RegisterSetting(addOnName, category, dataTbl, database, Settings.VarType.String)
+            local initializer = Settings.CreateControlInitializer("LibBlzSettingsEditboxControlTemplate", setting, nil, tooltip)
+            initializer:AddSearchTags(dataTbl.name)
+            layout:AddInitializer(initializer)
+            return setting, initializer
+        end
+    },
+    [CONTROL_TYPE.CHECKBOX_AND_EDITBOX] = {
+        setting = {
+            inherits = CONTROL_TYPE.CHECKBOX,
+        },
+        requireArguments = {
+            editbox = Utils.CheckControlType(CONTROL_TYPE.EDITBOX)
+        },
+        buildFunction = function (addOnName, category, layout, dataTbl, database)
+            local checkboxSetting = Utils.RegisterSetting(addOnName, category, dataTbl, database, Settings.VarType.Boolean)
+            local editboxSetting = Utils.RegisterSetting(addOnName, category, dataTbl.editbox, database, Settings.VarType.String, dataTbl.editbox.name or dataTbl.name)
+            local data = {
+                name = dataTbl.name,
+                tooltip = dataTbl.tooltip,
+                setting = checkboxSetting,  -- 把选择框的设置项单独加进去 子选项才会跟着该选项锁定
+                cbSetting = checkboxSetting,
+                cbLabel = dataTbl.name,
+                cbTooltip = dataTbl.tooltip,
+                editboxSetting = editboxSetting,
+                editboxLabel = dataTbl.editbox.name or dataTbl.name,
+                editboxTooltip = dataTbl.editbox.tooltip or dataTbl.tooltip,
+            }
+            local initializer = Settings.CreateSettingInitializer("LibBlzSettingsCheckboxEditboxControlTemplate", data)
+            initializer:AddSearchTags(dataTbl.name)
+            layout:AddInitializer(initializer)
+            return checkboxSetting, initializer
+        end
+    },
 }
 
 function Utils.CheckControl(dataTbl, controlType)

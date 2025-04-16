@@ -30,6 +30,14 @@ function CooldownDone:prepareSettings()
                 default = true,
             },
             {
+                controlType = CONTROL_TYPE.EDITBOX,
+                settingType = SETTING_TYPE.ADDON_VARIABLE,
+                name = "就绪",
+                tooltip = "就绪的文本",
+                key = "CooldownDone.doneStr",
+                default = "就绪",
+            },
+            {
                 controlType = CONTROL_TYPE.DROPDOWN,
                 settingType = SETTING_TYPE.ADDON_VARIABLE,
                 name = "语音",
@@ -63,7 +71,7 @@ function CooldownDone:prepareSettings()
                 name = "测试",
                 buttonText = "点击测试",
                 execute = function()
-                    CooldownDone:speakTTS("技能名就绪")
+                    CooldownDone:speakTTS("技能名")
                 end,
             },
         },
@@ -83,14 +91,22 @@ function CooldownDone:prepareSettings()
             name = "法术列表",
         })
         for _, spell in ipairs(self.spellBookSpells) do
-            local key = string.format("CooldownDone.spell.%s.enable", spell.id)
+            local keyCheckbox = string.format("CooldownDone.spell.%s.enable", spell.id)
+            local keyEditbox = string.format("CooldownDone.spell.%s.name", spell.id)
             table.insert(settings.subCategorys[1].settings, {
-                controlType = CONTROL_TYPE.CHECKBOX,
+                controlType = CONTROL_TYPE.CHECKBOX_AND_EDITBOX,
                 settingType = SETTING_TYPE.ADDON_VARIABLE,
                 name = spell.name .. "|T"..spell.texture..":14:14:1:0|t",
                 tooltip = spell.name,
-                key = key,
-                default = false
+                key = keyCheckbox,
+                default = false,
+                editbox = {
+                    controlType = CONTROL_TYPE.EDITBOX,
+                    settingType = SETTING_TYPE.ADDON_VARIABLE,
+                    tooltip = "自定义技能名称",
+                    key = keyEditbox,
+                    default = "",
+                },
             })
         end
     end
@@ -100,14 +116,22 @@ function CooldownDone:prepareSettings()
             name = "装备列表",
         })
         for _, spell in ipairs(self.equippedItemSpells) do
-            local key = string.format("CooldownDone.spell.%s.enable", spell.id)
+            local keyCheckbox = string.format("CooldownDone.spell.%s.enable", spell.id)
+            local keyEditbox = string.format("CooldownDone.spell.%s.name", spell.id)
             table.insert(settings.subCategorys[1].settings, {
-                controlType = CONTROL_TYPE.CHECKBOX,
+                controlType = CONTROL_TYPE.CHECKBOX_AND_EDITBOX,
                 settingType = SETTING_TYPE.ADDON_VARIABLE,
                 name = spell.name .. "|T"..spell.texture..":14:14:1:0|t",
                 tooltip = spell.name,
-                key = key,
-                default = false
+                key = keyCheckbox,
+                default = false,
+                editbox = {
+                    controlType = CONTROL_TYPE.EDITBOX,
+                    settingType = SETTING_TYPE.ADDON_VARIABLE,
+                    tooltip = "自定义技能名称",
+                    key = keyEditbox,
+                    default = "",
+                },
             })
         end
     end

@@ -11,7 +11,7 @@ end
 
 function CooldownDone:debug(val)
     UIParentLoadAddOn("Blizzard_DebugTools");
-	DevTools_DumpCommand(val);
+    DevTools_DumpCommand(val);
 end
 
 function CooldownDone:getPlayerSpellBookSpells()
@@ -65,24 +65,32 @@ end
 function CooldownDone:speakTTS(text)
     if not text then return end
     if not CooldownDoneDB or not CooldownDoneDB["CooldownDone.enable"] then return end
-    local ttsVoiceID = CooldownDoneDB and CooldownDoneDB["CooldownDone.ttsVoiceID"] or 2
+    local ttsVoiceID = CooldownDoneDB and CooldownDoneDB["CooldownDone.ttsVoiceID"] or 0
     local ttsRate = CooldownDoneDB and CooldownDoneDB["CooldownDone.ttsRate"] or 0
     local ttsVolume = CooldownDoneDB and CooldownDoneDB["CooldownDone.ttsVolume"] or 100
-    C_VoiceChat.SpeakText(ttsVoiceID, text, Enum.VoiceTtsDestination.QueuedLocalPlayback, ttsRate, ttsVolume)
+    local textAppend = CooldownDoneDB and CooldownDoneDB["CooldownDone.doneStr"] or "就绪"
+    C_VoiceChat.SpeakText(ttsVoiceID, text .. textAppend, Enum.VoiceTtsDestination.QueuedLocalPlayback, ttsRate, ttsVolume)
 end
 
 function CooldownDone:trackCooldownDone(spellID)
     if not CooldownDoneDB or not CooldownDoneDB["CooldownDone.enable"] then return end
     local key = string.format("CooldownDone.spell.%s.enable", spellID)
     if not CooldownDoneCharDB or not CooldownDoneCharDB[key] then return end
-    C_Timer.After(1.5, function()
+    -- C_Spell.GetSpellCooldown here now may return duration=GCD time, so we check it later
+    C_Timer.After(1.6, function()
         local spellCooldownInfo  = C_Spell.GetSpellCooldown(spellID) or {startTime=0,duration=0,isEnabled=false,modRate=1}
         if spellCooldownInfo.startTime > 0 and spellCooldownInfo.duration > 0 then
             self.cooldownFrames[spellID] = self.cooldownFrames[spellID] or CreateFrame("Cooldown", nil)
             self.cooldownFrames[spellID]:SetCooldown(spellCooldownInfo.startTime, spellCooldownInfo.duration, spellCooldownInfo.modRate)
             self.cooldownFrames[spellID]:SetScript("OnCooldownDone",function()
-                local name = C_Spell.GetSpellName(spellID) or "未知法术"
-                self:speakTTS(name .. "就绪")
+                local keyName = string.format("CooldownDone.spell.%s.name", spellID)
+                local name = ""
+                if CooldownDoneCharDB and CooldownDoneCharDB[keyName] and CooldownDoneCharDB[keyName] ~= "" then
+                    name = CooldownDoneCharDB[keyName]
+                else
+                    name = C_Spell.GetSpellName(spellID) or "未知法术"
+                end
+                self:speakTTS(name)
                 self.cooldownFrames[spellID]:SetScript("OnCooldownDone", nil);
             end)
         end
