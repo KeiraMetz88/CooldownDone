@@ -5,7 +5,7 @@
     This library is based on the Blizzard Settings API and is used to quickly serialize tables into Blizzard Vertical Settings Categories.
 ]]
 
-local MAJOR, MINOR = "LibBlzSettings-1.0", 110100
+local MAJOR, MINOR = "LibBlzSettings-1.0", 110101
 
 local LibBlzSettings = LibStub:NewLibrary(MAJOR, MINOR)
 
@@ -187,8 +187,7 @@ local CONTROL_TYPE_METADATA = {
             local checkboxSetting = Utils.RegisterSetting(addOnName, category, dataTbl, database, Settings.VarType.Boolean)
             local dropdownSetting = Utils.RegisterSetting(addOnName, category, dataTbl.dropdown, database, dropdownVarType, dataTbl.dropdown.name or dataTbl.name)
 
-            local data =
-            {
+            local data = {
                 name = dataTbl.name,
                 tooltip = dataTbl.tooltip,
                 setting = checkboxSetting,  -- 把选择框的设置项单独加进去 子选项才会跟着该选项锁定
@@ -254,8 +253,7 @@ local CONTROL_TYPE_METADATA = {
                 end)
             end
             
-            local data =
-            {
+            local data = {
                 name = dataTbl.name,
                 tooltip = dataTbl.tooltip,
                 setting = checkboxSetting,  -- 把选择框的设置项单独加进去 子选项才会跟着该选项锁定
@@ -515,6 +513,13 @@ local function SetupControl(addOnName, category, layout, dataTbl, database)
             return
         end
         if type(CONTROL_TYPE_METADATA[dataTbl.controlType].buildFunction) == "function" then
+            -- 指定额外的表 (而不是分类使用的表) 来储存数据
+            if type(dataTbl.database) == "table" then
+                database = dataTbl.database
+            elseif type(dataTbl.database) == "string" and type(_G[dataTbl.database]) == "table" then
+                database = _G[dataTbl.database]
+            end
+
             local setting, initializer = CONTROL_TYPE_METADATA[dataTbl.controlType].buildFunction(addOnName, category, layout, dataTbl, database)
 
             initializer.LibBlzSettingsData = dataTbl
@@ -543,7 +548,7 @@ local function SetupControl(addOnName, category, layout, dataTbl, database)
                     end
 
                     for _, subDataTbl in ipairs(dataTbl.subSettings) do
-                        local _, subInitializer = SetupControl(addOnName, category, layout, subDataTbl, subDataTbl.database or database)
+                        local _, subInitializer = SetupControl(addOnName, category, layout, subDataTbl, database)
                         if subInitializer and isModifiable then
                             subInitializer:SetParentInitializer(initializer, isModifiable)
                         end
@@ -564,17 +569,35 @@ local function BuildCategory(addOnName, dataTbl, database, parentCategory)
         category, layout = Settings.RegisterVerticalLayoutCategory(dataTbl.name or addOnName)
     end
 
+    if type(database) == "table" then
+        -- 提供了表类型作为数据库, 不做额外处理
+    elseif type(database) == "string" and type(_G[database]) == "table" then
+        -- 提供字符串类型, 且对应的全局变量为表类型: 将其作为数据库使用
+        database = _G[database]
+    else
+        -- 如果未指定数据库, 变量将储存到这个空表
+        -- 实际上这个表不会被游戏储存, Reload或登出后所有储存的变量都会丢失
+        database = {}
+    end
+
+    -- 如果此选项分类指定了储存数据用的数据表 将覆盖指定的数据库(此数据库也将应用至子分类以及子选项中)
+    if type(dataTbl.database) == "table" then
+        database = dataTbl.database
+    elseif type(dataTbl.database) == "string" and type(_G[dataTbl.database]) == "table" then
+        database = _G[dataTbl.database]
+    end
+
     -- 注册设置项目
     if type(dataTbl.settings) == "table" then
         for _, settingDataTbl in ipairs(dataTbl.settings) do
-            SetupControl(addOnName, category, layout, settingDataTbl, settingDataTbl.database or database)
+            SetupControl(addOnName, category, layout, settingDataTbl, database)
         end
     end
 
     -- 注册子选项菜单
     if not parentCategory and type(dataTbl.subCategorys) == "table" then
         for _, subDataTbl in ipairs(dataTbl.subCategorys) do
-            BuildCategory(addOnName, subDataTbl, subDataTbl.database or database, category)
+            BuildCategory(addOnName, subDataTbl, database, category)
         end
     end
 
@@ -639,10 +662,6 @@ end
 function LibBlzSettings:RegisterVerticalSettingsTable(addOnName, dataTbl, database, addToOptions)
     if addToOptions == nil then
         addToOptions = true
-    end
-
-    if not (database and type(database) == "table") then
-        database = {}
     end
 
     if dataTbl and type(dataTbl) == "table" then
