@@ -30,6 +30,14 @@ function CooldownDone:prepareSettings()
                 default = true,
             },
             {
+                controlType = CONTROL_TYPE.CHECKBOX,
+                settingType = SETTING_TYPE.ADDON_VARIABLE,
+                name = "调试",
+                tooltip = "启用/禁用调试信息",
+                key = "CooldownDone.debug",
+                default = false,
+            },
+            {
                 controlType = CONTROL_TYPE.EDITBOX,
                 settingType = SETTING_TYPE.ADDON_VARIABLE,
                 name = "就绪",
@@ -85,58 +93,62 @@ function CooldownDone:prepareSettings()
         }
     }
 
-    if #self.spellBookSpells > 0 then
+    table.insert(settings.subCategorys[1].settings, {
+        controlType = CONTROL_TYPE.SECTION_HEADER,
+        name = "法术列表",
+    })
+    for _, spell in pairs(self.spellBookSpells) do
+        local keyCheckbox = string.format("CooldownDone.spell.%s.enable", spell.id)
+        local keyEditbox = string.format("CooldownDone.spell.%s.name", spell.id)
+        local name = spell.name .. "(" .. tostring(spell.id) .. ")" .. "|T" .. spell.texture .. ":14:14:1:0|t"
         table.insert(settings.subCategorys[1].settings, {
-            controlType = CONTROL_TYPE.SECTION_HEADER,
-            name = "法术列表",
-        })
-        for _, spell in ipairs(self.spellBookSpells) do
-            local keyCheckbox = string.format("CooldownDone.spell.%s.enable", spell.id)
-            local keyEditbox = string.format("CooldownDone.spell.%s.name", spell.id)
-            table.insert(settings.subCategorys[1].settings, {
-                controlType = CONTROL_TYPE.CHECKBOX_AND_EDITBOX,
+            controlType = CONTROL_TYPE.CHECKBOX_AND_EDITBOX,
+            settingType = SETTING_TYPE.ADDON_VARIABLE,
+            name = name,
+            tooltip = "启用/禁用",
+            key = keyCheckbox,
+            default = false,
+            editbox = {
+                controlType = CONTROL_TYPE.EDITBOX,
                 settingType = SETTING_TYPE.ADDON_VARIABLE,
-                name = spell.name .. "|T"..spell.texture..":14:14:1:0|t",
-                tooltip = "启用/禁用",
-                key = keyCheckbox,
-                default = false,
-                editbox = {
-                    controlType = CONTROL_TYPE.EDITBOX,
-                    settingType = SETTING_TYPE.ADDON_VARIABLE,
-                    name = spell.name .. "|T"..spell.texture..":14:14:1:0|t",
-                    tooltip = "自定义技能名称",
-                    key = keyEditbox,
-                    default = "",
-                },
-            })
-        end
+                name = name,
+                tooltip = "自定义技能名称",
+                key = keyEditbox,
+                default = "",
+            },
+        })
     end
-    if #self.equippedItemSpells > 0 then
+    table.insert(settings.subCategorys[1].settings, {
+        controlType = CONTROL_TYPE.SECTION_HEADER,
+        name = "装备列表",
+    })
+    for _, spell in pairs(self.equippedItemSpells) do
+        local keyCheckbox = string.format("CooldownDone.spell.%s.enable", spell.id)
+        local keyEditbox = string.format("CooldownDone.spell.%s.name", spell.id)
+        local itemName = spell.itemName .."(" .. tostring(spell.itemID)..")" .. "|T" .. spell.itemTexture .. ":14:14:1:0|t"
+        local spellName = spell.name .."(" .. tostring(spell.id)..")" .. "|T" .. spell.texture .. ":14:14:1:0|t"
         table.insert(settings.subCategorys[1].settings, {
-            controlType = CONTROL_TYPE.SECTION_HEADER,
-            name = "装备列表",
-        })
-        for _, spell in ipairs(self.equippedItemSpells) do
-            local keyCheckbox = string.format("CooldownDone.spell.%s.enable", spell.id)
-            local keyEditbox = string.format("CooldownDone.spell.%s.name", spell.id)
-            table.insert(settings.subCategorys[1].settings, {
-                controlType = CONTROL_TYPE.CHECKBOX_AND_EDITBOX,
+            controlType = CONTROL_TYPE.CHECKBOX_AND_EDITBOX,
+            settingType = SETTING_TYPE.ADDON_VARIABLE,
+            name = itemName,
+            tooltip = spellName .. "\n启用/禁用",
+            key = keyCheckbox,
+            default = false,
+            editbox = {
+                controlType = CONTROL_TYPE.EDITBOX,
                 settingType = SETTING_TYPE.ADDON_VARIABLE,
-                name = spell.name .. "|T"..spell.texture..":14:14:1:0|t",
-                tooltip = "启用/禁用",
-                key = keyCheckbox,
-                default = false,
-                editbox = {
-                    controlType = CONTROL_TYPE.EDITBOX,
-                    settingType = SETTING_TYPE.ADDON_VARIABLE,
-                    name = spell.name .. "|T"..spell.texture..":14:14:1:0|t",
-                    tooltip = "自定义装备名称",
-                    key = keyEditbox,
-                    default = "",
-                },
-            })
-        end
+                name = itemName,
+                tooltip = spellName .. "\n自定义装备名称",
+                key = keyEditbox,
+                default = "",
+            },
+        })
     end
 
-    LibBlzSettings:RegisterVerticalSettingsTable(ADDON_NAME, settings, CooldownDoneDB, true)
+    local category, _ = LibBlzSettings:RegisterVerticalSettingsTable(ADDON_NAME, settings, CooldownDoneDB, true)
+
+    _G.SLASH_COOLDOWNDONE1 = "/cdd";
+    _G.SlashCmdList["COOLDOWNDONE"] = function()
+        Settings.OpenToCategory(category.ID)
+    end
 end
