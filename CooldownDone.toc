@@ -1,5 +1,5 @@
 ## Interface: 110100,110105
-## Version: 1.2.0
+## Version: 1.3.0
 
 ## Title: CD就绪
 
@@ -11,4 +11,5 @@
 
 Libs\libs.xml
 CooldownDone.lua
+SettingControls.xml
 Settings.lua

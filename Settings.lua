@@ -1,10 +1,251 @@
 local ADDON_NAME, CooldownDone = ...
 
-function CooldownDone:prepareSettings()
-    local LibBlzSettings = LibStub("LibBlzSettings-1.0")
-    local CONTROL_TYPE = LibBlzSettings.CONTROL_TYPE
-    local SETTING_TYPE = LibBlzSettings.SETTING_TYPE
+local LibBlzSettings = LibStub("LibBlzSettings-1.0")
+local CONTROL_TYPE = LibBlzSettings.CONTROL_TYPE
+local SETTING_TYPE = LibBlzSettings.SETTING_TYPE
+local CONTROL_TYPE_METADATA = {
+    EDITBOX = {
+        setting = {
+            varType = Settings.VarType.String
+        },
+        buildFunction = function (addOnName, category, layout, dataTbl, database)
+            local setting = LibBlzSettings.Utils.RegisterSetting(addOnName, category, dataTbl, database, Settings.VarType.String)
+            local initializer = Settings.CreateControlInitializer("CDDSettingsEditboxControlTemplate", setting, nil, dataTbl.tooltip)
+            initializer:AddSearchTags(dataTbl.name)
+            layout:AddInitializer(initializer)
+            return setting, initializer
+        end
+    },
+    CHECKBOX_AND_EDITBOX = {
+        buildFunction = function (addOnName, category, layout, dataTbl, database)
+            local checkboxSetting = LibBlzSettings.Utils.RegisterSetting(addOnName, category, dataTbl, database, Settings.VarType.Boolean)
+            local editboxSetting = LibBlzSettings.Utils.RegisterSetting(addOnName, category, dataTbl.editbox, database, Settings.VarType.String, dataTbl.editbox.name or dataTbl.name)
+            local data = {
+                name = dataTbl.name,
+                tooltip = dataTbl.tooltip,
+                setting = checkboxSetting,
+                cbSetting = checkboxSetting,
+                cbLabel = dataTbl.name,
+                cbTooltip = dataTbl.tooltip,
+                editboxSetting = editboxSetting,
+                editboxLabel = dataTbl.editbox.name or dataTbl.name,
+                editboxTooltip = dataTbl.editbox.tooltip or dataTbl.tooltip,
+            }
+            local initializer = Settings.CreateSettingInitializer("CDDSettingsCheckboxEditboxControlTemplate", data)
+            initializer:AddSearchTags(dataTbl.name)
+            layout:AddInitializer(initializer)
+            return checkboxSetting, initializer
+        end
+    },
+    LABEL = {
+        buildFunction = function (addOnName, category, layout, dataTbl, database)
+            local initializer = Settings.CreateElementInitializer("CDDSettingsListSectionLabelTemplate", dataTbl)
+            layout:AddInitializer(initializer)
+            return nil, initializer
+        end
+    },
+    EDITBOX_AND_BUTTON = {
+        buildFunction = function (addOnName, category, layout, dataTbl, database)
+            local setting
+            if dataTbl.key then
+                setting = LibBlzSettings.Utils.RegisterSetting(addOnName, category, dataTbl, database, Settings.VarType.String, dataTbl.name)
+            end
+            local data = {
+                key = dataTbl.key,
+                name = dataTbl.name,
+                tooltip = dataTbl.tooltip,
+                setting = setting,
+                editboxLabel = dataTbl.editboxLabel,
+                editboxTooltip = dataTbl.editboxTooltip,
+                buttonText = dataTbl.button.buttonText,
+                OnButtonClick = dataTbl.button.OnButtonClick
+            }
+            local initializer = Settings.CreateSettingInitializer("CDDSettingsEditboxButtonControlTemplate", data)
+            initializer:AddSearchTags(dataTbl.name)
+            layout:AddInitializer(initializer)
+            return setting, initializer
+        end
+    },
+}
 
+CooldownDone.category = nil
+local CATEGORY_NAME_AURA = "BUFF列表"
+
+-- Matches a similar function reused in multiple places
+local function EnumerateTaintedKeysTable(tableToIterate)
+    local pairsIterator, enumerateTable, initialIteratorKey = securecallfunction(pairs, tableToIterate);
+    local function IteratorFunction(tbl, key)
+        return securecallfunction(pairsIterator, tbl, key);
+    end
+
+    return IteratorFunction, enumerateTable, initialIteratorKey;
+end
+
+function CooldownDone:addAura(control)
+    local auraID = tonumber(control.Editbox:GetText())
+    if not auraID or auraID <= 0 then
+        print("|cffff0000请输入ID|r")
+        return
+    end
+    local auraName = C_Spell.GetSpellName(auraID)
+    if not auraName then
+        print("|cffff0000未找到，请输入正确的ID|r")
+        return
+    end
+    if self.auras[auraID] then
+        print(string.format("|cffff0000%s-%s已经存在|r", auraID, auraName))
+        return
+    end
+    local key = string.format("CooldownDone.aura.%s.name", auraID)
+    CooldownDoneCharDB[key] = ""
+    self.auras[auraID] = {
+        id = auraID,
+        name = auraName,
+        texture = C_Spell.GetSpellTexture(auraID)
+    }
+    local name = self.auras[auraID].name .. "(" .. tostring(self.auras[auraID].id) .. ")" .. "|T" .. self.auras[auraID].texture .. ":14:14:1:0|t"
+    local dataTbl = {
+        controlType = "",
+        settingType = SETTING_TYPE.ADDON_VARIABLE,
+        name = name,
+        key = key,
+        default = "",
+        editboxTooltip = "自定义BUFF名称",
+        controlTypeMetaData = CONTROL_TYPE_METADATA["EDITBOX_AND_BUTTON"],
+        button = {
+            buttonText = "移除",
+            OnButtonClick = function(control)
+                self:removeAura(control)
+            end,
+        },
+    }
+    for _, subCategory in ipairs(CooldownDone.category:GetSubcategories()) do
+        if subCategory:GetName() == CATEGORY_NAME_AURA then
+            local layout = SettingsPanel:GetLayout(subCategory)
+            local _, initializer = CONTROL_TYPE_METADATA["EDITBOX_AND_BUTTON"].buildFunction(ADDON_NAME, subCategory, layout, dataTbl, CooldownDoneCharDB)
+            initializer.LibBlzSettingsData = {}
+            local newInitializers = {}
+            for k, v in EnumerateTaintedKeysTable(layout:GetInitializers()) do
+                if v.data.name == "BUFF获得" then
+                    table.insert(newInitializers, initializer)
+                end
+                if v ~= initializer then
+                    table.insert(newInitializers, v)
+                end
+            end
+            layout.initializers = newInitializers
+            SettingsPanel:DisplayLayout(layout)
+            break
+        end
+    end
+end
+
+function CooldownDone:addAddedAura(control)
+    local auraID = tonumber(control.Editbox:GetText())
+    if not auraID or auraID <= 0 then
+        print("|cffff0000请输入ID|r")
+        return
+    end
+    local auraName = C_Spell.GetSpellName(auraID)
+    if not auraName then
+        print("|cffff0000未找到，请输入正确的ID|r")
+        return
+    end
+    if self.addedAuras[auraID] then
+        print(string.format("|cffff0000%s-%s已经存在|r", auraID, auraName))
+        return
+    end
+    local key = string.format("CooldownDone.addedaura.%s.name", auraID)
+    CooldownDoneCharDB[key] = ""
+    self.addedAuras[auraID] = {
+        id = auraID,
+        name = auraName,
+        texture = C_Spell.GetSpellTexture(auraID)
+    }
+    local name = self.addedAuras[auraID].name .. "(" .. tostring(self.addedAuras[auraID].id) .. ")" .. "|T" .. self.addedAuras[auraID].texture .. ":14:14:1:0|t"
+    local dataTbl = {
+        controlType = "",
+        settingType = SETTING_TYPE.ADDON_VARIABLE,
+        name = name,
+        key = key,
+        default = "",
+        editboxTooltip = "自定义BUFF名称",
+        controlTypeMetaData = CONTROL_TYPE_METADATA["EDITBOX_AND_BUTTON"],
+        button = {
+            buttonText = "移除",
+            OnButtonClick = function(control)
+                self:removeAddedAura(control)
+            end,
+        },
+    }
+    for _, subCategory in ipairs(CooldownDone.category:GetSubcategories()) do
+        if subCategory:GetName() == CATEGORY_NAME_AURA then
+            local layout = SettingsPanel:GetLayout(subCategory)
+            local _, initializer = CONTROL_TYPE_METADATA["EDITBOX_AND_BUTTON"].buildFunction(ADDON_NAME, subCategory, layout, dataTbl, CooldownDoneCharDB)
+            initializer.LibBlzSettingsData = {}
+            SettingsPanel:DisplayLayout(layout)
+            break
+        end
+    end
+end
+
+function CooldownDone:removeAura(control)
+    local initializer = control:GetElementData()
+    local key = initializer.data.key
+    local auraID = key:match("CooldownDone.aura.([%d]+).name")
+    auraID = tonumber(auraID)
+    if not auraID or auraID <= 0 then
+        print("|cffff0000数据错误|r")
+        return
+    end
+    local key = string.format("CooldownDone.aura.%s.name", auraID)
+    CooldownDoneCharDB[key] = nil
+    self.auras[auraID] = nil
+    for _, subCategory in ipairs(CooldownDone.category:GetSubcategories()) do
+        if subCategory:GetName() == CATEGORY_NAME_AURA then
+            local layout = SettingsPanel:GetLayout(subCategory)
+            local newInitializers = {}
+            for k, v in EnumerateTaintedKeysTable(layout:GetInitializers()) do
+                if initializer ~= v then
+                    table.insert(newInitializers, v)
+                end
+            end
+            layout.initializers = newInitializers
+            SettingsPanel:DisplayLayout(layout)
+            break
+        end
+    end
+end
+
+function CooldownDone:removeAddedAura(control)
+    local initializer = control:GetElementData()
+    local key = initializer.data.key
+    local auraID = key:match("CooldownDone.addedaura.([%d]+).name")
+    auraID = tonumber(auraID)
+    if not auraID or auraID <= 0 then
+        print("|cffff0000数据错误|r")
+        return
+    end
+    local key = string.format("CooldownDone.addedaura.%s.name", auraID)
+    CooldownDoneCharDB[key] = nil
+    self.addedAuras[auraID] = nil
+    for _, subCategory in ipairs(CooldownDone.category:GetSubcategories()) do
+        if subCategory:GetName() == CATEGORY_NAME_AURA then
+            local layout = SettingsPanel:GetLayout(subCategory)
+            local newInitializers = {}
+            for k, v in EnumerateTaintedKeysTable(layout:GetInitializers()) do
+                if initializer ~= v then
+                    table.insert(newInitializers, v)
+                end
+            end
+            layout.initializers = newInitializers
+            SettingsPanel:DisplayLayout(layout)
+            break
+        end
+    end
+end
+
+function CooldownDone:prepareSettings()
     local voiceIDOptions = {}
     local voiceIDDefault = nil
     local ttsVoices = C_VoiceChat.GetTtsVoices()
@@ -38,12 +279,31 @@ function CooldownDone:prepareSettings()
                 default = false,
             },
             {
-                controlType = CONTROL_TYPE.EDITBOX,
+                controlType = "",
                 settingType = SETTING_TYPE.ADDON_VARIABLE,
                 name = "就绪",
-                tooltip = "就绪的文本",
+                tooltip = "技能就绪的文本",
                 key = "CooldownDone.doneStr",
                 default = "就绪",
+                controlTypeMetaData = CONTROL_TYPE_METADATA["EDITBOX"],
+            },
+            {
+                controlType = "",
+                settingType = SETTING_TYPE.ADDON_VARIABLE,
+                name = "获得",
+                tooltip = "获得BUFF的文本",
+                key = "CooldownDone.addedStr",
+                default = "获得",
+                controlTypeMetaData = CONTROL_TYPE_METADATA["EDITBOX"],
+            },
+            {
+                controlType = "",
+                settingType = SETTING_TYPE.ADDON_VARIABLE,
+                name = "结束",
+                tooltip = "BUFF结束的文本",
+                key = "CooldownDone.overStr",
+                default = "结束",
+                controlTypeMetaData = CONTROL_TYPE_METADATA["EDITBOX"],
             },
             {
                 controlType = CONTROL_TYPE.DROPDOWN,
@@ -85,10 +345,26 @@ function CooldownDone:prepareSettings()
         },
         subCategorys = {
             {
-                module = "spells",
                 name = "技能列表",
                 database = CooldownDoneCharDB,
-                settings = {},
+                settings = {
+                    {
+                        controlType = "",
+                        name = "提示：修改天赋/习得法术/切换天赋/切换专精等操作请reload！",
+                        controlTypeMetaData = CONTROL_TYPE_METADATA["LABEL"],
+                    },
+                },
+            },
+            {
+                name = CATEGORY_NAME_AURA,
+                database = CooldownDoneCharDB,
+                settings = {
+                    {
+                        controlType = "",
+                        name = "提示：移除BUFF数据后请务必reload！",
+                        controlTypeMetaData = CONTROL_TYPE_METADATA["LABEL"],
+                    },
+                },
             }
         }
     }
@@ -102,19 +378,21 @@ function CooldownDone:prepareSettings()
         local keyEditbox = string.format("CooldownDone.spell.%s.name", spell.id)
         local name = spell.name .. "(" .. tostring(spell.id) .. ")" .. "|T" .. spell.texture .. ":14:14:1:0|t"
         table.insert(settings.subCategorys[1].settings, {
-            controlType = CONTROL_TYPE.CHECKBOX_AND_EDITBOX,
+            controlType = "",
             settingType = SETTING_TYPE.ADDON_VARIABLE,
             name = name,
             tooltip = "启用/禁用",
             key = keyCheckbox,
             default = false,
+            controlTypeMetaData = CONTROL_TYPE_METADATA["CHECKBOX_AND_EDITBOX"],
             editbox = {
-                controlType = CONTROL_TYPE.EDITBOX,
+                controlType = "",
                 settingType = SETTING_TYPE.ADDON_VARIABLE,
                 name = name,
                 tooltip = "自定义技能名称",
                 key = keyEditbox,
                 default = "",
+                controlTypeMetaData = CONTROL_TYPE_METADATA["EDITBOX"],
             },
         })
     end
@@ -128,27 +406,100 @@ function CooldownDone:prepareSettings()
         local itemName = spell.itemName .."(" .. tostring(spell.itemID)..")" .. "|T" .. spell.itemTexture .. ":14:14:1:0|t"
         local spellName = spell.name .."(" .. tostring(spell.id)..")" .. "|T" .. spell.texture .. ":14:14:1:0|t"
         table.insert(settings.subCategorys[1].settings, {
-            controlType = CONTROL_TYPE.CHECKBOX_AND_EDITBOX,
+            controlType = "",
             settingType = SETTING_TYPE.ADDON_VARIABLE,
             name = itemName,
             tooltip = spellName .. "\n启用/禁用",
             key = keyCheckbox,
             default = false,
+            controlTypeMetaData = CONTROL_TYPE_METADATA["CHECKBOX_AND_EDITBOX"],
             editbox = {
-                controlType = CONTROL_TYPE.EDITBOX,
+                controlType = "",
                 settingType = SETTING_TYPE.ADDON_VARIABLE,
                 name = itemName,
                 tooltip = spellName .. "\n自定义装备名称",
                 key = keyEditbox,
                 default = "",
+                controlTypeMetaData = CONTROL_TYPE_METADATA["EDITBOX"],
             },
         })
     end
 
-    local category, _ = LibBlzSettings:RegisterVerticalSettingsTable(ADDON_NAME, settings, CooldownDoneDB, true)
+    table.insert(settings.subCategorys[2].settings, {
+        controlType = CONTROL_TYPE.SECTION_HEADER,
+        name = "BUFF结束",
+    })
+    table.insert(settings.subCategorys[2].settings, {
+        controlType = "",
+        name = "添加BUFF ID",
+        tooltip = "输入BUFF ID后点击添加按钮",
+        controlTypeMetaData = CONTROL_TYPE_METADATA["EDITBOX_AND_BUTTON"],
+        button = {
+            buttonText = "添加",
+            OnButtonClick = function(control)
+                self:addAura(control)
+             end,
+        },
+    })
+    for _, aura in pairs(self.auras) do
+        local keyEditbox = string.format("CooldownDone.aura.%s.name", aura.id)
+        local name = aura.name .. "(" .. tostring(aura.id) .. ")" .. "|T" .. aura.texture .. ":14:14:1:0|t"
+        table.insert(settings.subCategorys[2].settings, {
+            controlType = "",
+            settingType = SETTING_TYPE.ADDON_VARIABLE,
+            name = name,
+            key = keyEditbox,
+            default = "",
+            editboxTooltip = "自定义BUFF名称",
+            controlTypeMetaData = CONTROL_TYPE_METADATA["EDITBOX_AND_BUTTON"],
+            button = {
+                buttonText = "移除",
+                OnButtonClick = function(control)
+                    self:removeAura(control)
+                end,
+            },
+        })
+    end
+    table.insert(settings.subCategorys[2].settings, {
+        controlType = CONTROL_TYPE.SECTION_HEADER,
+        name = "BUFF获得",
+    })
+    table.insert(settings.subCategorys[2].settings, {
+        controlType = "",
+        name = "添加BUFF ID",
+        tooltip = "输入BUFF ID后点击添加按钮",
+        controlTypeMetaData = CONTROL_TYPE_METADATA["EDITBOX_AND_BUTTON"],
+        button = {
+            buttonText = "添加",
+            OnButtonClick = function(control)
+                self:addAddedAura(control)
+             end,
+        },
+    })
+    for _, aura in pairs(self.addedAuras) do
+        local keyEditbox = string.format("CooldownDone.addedaura.%s.name", aura.id)
+        local name = aura.name .. "(" .. tostring(aura.id) .. ")" .. "|T" .. aura.texture .. ":14:14:1:0|t"
+        table.insert(settings.subCategorys[2].settings, {
+            controlType = "",
+            settingType = SETTING_TYPE.ADDON_VARIABLE,
+            name = name,
+            key = keyEditbox,
+            default = "",
+            editboxTooltip = "自定义BUFF名称",
+            controlTypeMetaData = CONTROL_TYPE_METADATA["EDITBOX_AND_BUTTON"],
+            button = {
+                buttonText = "移除",
+                OnButtonClick = function(control)
+                    self:removeAddedAura(control)
+                end,
+            },
+        })
+    end
+
+    CooldownDone.category, _ = LibBlzSettings:RegisterVerticalSettingsTable(ADDON_NAME, settings, CooldownDoneDB, true)
 
     _G.SLASH_COOLDOWNDONE1 = "/cdd";
     _G.SlashCmdList["COOLDOWNDONE"] = function()
-        Settings.OpenToCategory(category.ID)
+        Settings.OpenToCategory(CooldownDone.category:GetID())
     end
 end

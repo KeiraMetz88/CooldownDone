@@ -2,6 +2,8 @@ local ADDON_NAME, CooldownDone = ...
 
 CooldownDone.spellBookSpells = {}
 CooldownDone.equippedItemSpells = {}
+CooldownDone.auras = {}
+CooldownDone.addedAuras = {}
 CooldownDone.cooldownFrames = {}
 
 local function prepareDB()
@@ -44,28 +46,66 @@ function CooldownDone:getPlayerSpellBookSpells()
     table.sort(self.spellBookSpells, function(a, b) return a.name:lower() < b.name:lower() end)
 end
 
+function CooldownDone:getAuras()
+    table.wipe(self.auras)
+    table.wipe(self.addedAuras)
+    local auraID
+    for k, v in pairs(CooldownDoneCharDB) do
+        auraID = k:match("CooldownDone.aura.([%d]+).name")
+        if auraID and tonumber(auraID) > 0 then
+            auraID = tonumber(auraID)
+            if not self.auras[auraID] then
+                self.auras[auraID] = {
+                    id = auraID,
+                    name = C_Spell.GetSpellName(auraID) or "未知光环",
+                    texture = C_Spell.GetSpellTexture(auraID)
+                }
+            end
+        end
+        auraID = k:match("CooldownDone.addedaura.([%d]+).name")
+        if auraID and tonumber(auraID) > 0 then
+            auraID = tonumber(auraID)
+            if not self.addedAuras[auraID] then
+                self.addedAuras[auraID] = {
+                    id = auraID,
+                    name = C_Spell.GetSpellName(auraID) or "未知光环",
+                    texture = C_Spell.GetSpellTexture(auraID)
+                }
+            end
+        end
+    end
+end
+
 function CooldownDone:getEquippedItemSpells(prepareSettings)
     table.wipe(self.equippedItemSpells)
     local itemIDs = {}
     for slot = INVSLOT_FIRST_EQUIPPED, INVSLOT_LAST_EQUIPPED do
         local itemID = GetInventoryItemID("player", slot)
         if itemID then
-            table.insert(itemIDs, itemID)
+            table.insert(itemIDs, {itemID = itemID, from = "equipped"})
+        end
+    end
+    for containerIndex = 0, 4 do
+        for slotIndex = 1, C_Container.GetContainerNumSlots(containerIndex) do
+            itemID = C_Container.GetContainerItemID(containerIndex, slotIndex)
+            if itemID then
+                table.insert(itemIDs, {itemID = itemID, from = "container"})
+            end
         end
     end
     local itemLoadCount = 0
     for _, itemID in ipairs(itemIDs) do
-        local item = Item:CreateFromItemID(itemID)
+        local item = Item:CreateFromItemID(itemID.itemID)
         item:ContinueOnItemLoad(function()
-            local spellName, spellID = C_Item.GetItemSpell(itemID)
-            if spellID and spellName and not self.equippedItemSpells[spellID] then
+            local spellName, spellID = C_Item.GetItemSpell(itemID.itemID)
+            if spellID and spellName and not (itemID.from == "container" and not C_Item.IsEquippableItem(itemID.itemID)) and not self.equippedItemSpells[spellID] then
                 local sName = C_Spell.GetSpellName(spellID) or spellName
                 local iName = item:GetItemName()  or sName
                 self.equippedItemSpells[spellID] = {
                     id = spellID,
                     name = sName,
                     texture = C_Spell.GetSpellTexture(spellID),
-                    itemID = itemID,
+                    itemID = itemID.itemID,
                     itemName = iName,
                     itemTexture = item:GetItemIcon()
                 }
@@ -84,15 +124,23 @@ function CooldownDone:getEquippedItemSpells(prepareSettings)
     end
 end
 
-function CooldownDone:speakTTS(text)
+function CooldownDone:speakTTS(text, typeStr)
     if not text then return end
     if not CooldownDoneDB or not CooldownDoneDB["CooldownDone.enable"] then return end
     local ttsVoiceID = CooldownDoneDB and CooldownDoneDB["CooldownDone.ttsVoiceID"] or 0
     local ttsRate = CooldownDoneDB and CooldownDoneDB["CooldownDone.ttsRate"] or 0
     local ttsVolume = CooldownDoneDB and CooldownDoneDB["CooldownDone.ttsVolume"] or 100
+    local textPrepend = ""
     local textAppend = CooldownDoneDB and CooldownDoneDB["CooldownDone.doneStr"] or "就绪"
+    if typeStr == "over" then
+        textAppend = CooldownDoneDB and CooldownDoneDB["CooldownDone.overStr"] or "结束"
+    end
+    if typeStr == "added" then
+        textPrepend = CooldownDoneDB and CooldownDoneDB["CooldownDone.addedStr"] or "获得"
+        textAppend = ""
+    end
     self:debug("speakTTS: " .. text .. textAppend)
-    C_VoiceChat.SpeakText(ttsVoiceID, text .. textAppend, Enum.VoiceTtsDestination.LocalPlayback, ttsRate, ttsVolume)
+    C_VoiceChat.SpeakText(ttsVoiceID, textPrepend .. text .. textAppend, Enum.VoiceTtsDestination.LocalPlayback, ttsRate, ttsVolume)
 end
 
 function CooldownDone:UNIT_SPELLCAST_SUCCEEDED(spellID, immediately)
@@ -192,12 +240,55 @@ function CooldownDone:SPELL_UPDATE_COOLDOWN()
     end
 end
 
+CooldownDone.trackingAuras = {}
+function CooldownDone:UNIT_AURA(updateInfo)
+    if not CooldownDoneDB or not CooldownDoneDB["CooldownDone.enable"] then return end
+    local key
+    if updateInfo.addedAuras ~= nil then
+        for _, addedAura in ipairs(updateInfo.addedAuras) do
+            key = string.format("CooldownDone.aura.%s.name", addedAura.spellId)
+            if CooldownDoneCharDB and CooldownDoneCharDB[key] ~= nil and not self.trackingAuras[addedAura.auraInstanceID] then
+                self.trackingAuras[addedAura.auraInstanceID] = addedAura
+            end
+            key = string.format("CooldownDone.addedaura.%s.name", addedAura.spellId)
+            if CooldownDoneCharDB and CooldownDoneCharDB[key] ~= nil then
+                local name = CooldownDoneCharDB[key] ~= "" and CooldownDoneCharDB[key] or addedAura.name
+                self:speakTTS(name, "added")
+            end
+        end
+    end
+    if updateInfo.updatedAuraInstanceIDs ~= nil then
+        for _, updatedAuraInstanceID in ipairs(updateInfo.updatedAuraInstanceIDs) do
+            local aura = C_UnitAuras.GetAuraDataByAuraInstanceID("player", updatedAuraInstanceID)
+            if aura then
+                key = string.format("CooldownDone.aura.%s.name", aura.spellId)
+                if CooldownDoneCharDB and CooldownDoneCharDB[key] ~= nil and not self.trackingAuras[updatedAuraInstanceID] then
+                    self.trackingAuras[updatedAuraInstanceID] = aura
+                end
+            end
+        end
+    end
+    if updateInfo.removedAuraInstanceIDs ~= nil then
+        for _, removedAuraInstanceID in ipairs(updateInfo.removedAuraInstanceIDs) do
+            if self.trackingAuras[removedAuraInstanceID] then
+                key = string.format("CooldownDone.aura.%s.name", self.trackingAuras[removedAuraInstanceID].spellId)
+                if CooldownDoneCharDB and CooldownDoneCharDB[key] ~= nil then
+                    local name = CooldownDoneCharDB[key] ~= "" and CooldownDoneCharDB[key] or self.trackingAuras[removedAuraInstanceID].name
+                    self:speakTTS(name, "over")
+                end
+                self.trackingAuras[removedAuraInstanceID] = nil
+            end
+        end
+    end
+end
+
 local frame = CreateFrame("Frame")
 frame:RegisterEvent("ADDON_LOADED")
 frame:RegisterEvent("PLAYER_ENTERING_WORLD")
 frame:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
 frame:RegisterEvent("SPELL_UPDATE_COOLDOWN")
 frame:RegisterUnitEvent("UNIT_SPELLCAST_SUCCEEDED", "player")
+frame:RegisterUnitEvent("UNIT_AURA", "player")
 frame:SetScript("OnEvent", function(self, event, ...)
     if event == "ADDON_LOADED" then
         local addOnName = ...
@@ -207,9 +298,12 @@ frame:SetScript("OnEvent", function(self, event, ...)
             self:UnregisterEvent("ADDON_LOADED")
         end
     elseif event == "PLAYER_ENTERING_WORLD" then
-        CooldownDone:debug(event)
-        CooldownDone:getPlayerSpellBookSpells()
-        CooldownDone:getEquippedItemSpells(true)
+        C_Timer.After(1, function()
+            CooldownDone:debug(event)
+            CooldownDone:getPlayerSpellBookSpells()
+            CooldownDone:getAuras()
+            CooldownDone:getEquippedItemSpells(true)
+        end)
         --CooldownDone:prepareSettings()
         -- https://warcraft.wiki.gg/wiki/PLAYER_ENTERING_WORLD
         -- Fires when the player logs in, /reloads the UI or zones between map instances. Basically whenever the loading screen appears.
@@ -224,5 +318,10 @@ frame:SetScript("OnEvent", function(self, event, ...)
     elseif event == "SPELL_UPDATE_COOLDOWN" then
         CooldownDone:debug(event)
         CooldownDone:SPELL_UPDATE_COOLDOWN()
+    elseif event == "UNIT_AURA" then
+        local unitTarget, updateInfo = ...
+        if unitTarget == "player" then
+            CooldownDone:UNIT_AURA(updateInfo)
+        end
     end
 end)

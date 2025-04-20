@@ -26,8 +26,6 @@ LibBlzSettings.CONTROL_TYPE = {
     CHECKBOX_AND_SLIDER = 6,            -- 选择框和滑动条
     BUTTON = 7,                         -- 按钮
     CHECKBOX_AND_BUTTON = 8,            -- 选择框和按钮
-    EDITBOX = 9,                        -- 输入框
-    CHECKBOX_AND_EDITBOX = 10,          -- 选择框和输入框
 
     CUSTOM_FRAME = 51,                  -- 自定义框体
     LIB_SHARED_MEDIA_DROPDOWN = 101,    -- 下拉菜单用以选择一种LibSharedMedia素材类型, 需要LibSharedMedia-3.0库(这应当在你的插件中包含), 否则不会显示
@@ -36,6 +34,7 @@ LibBlzSettings.CONTROL_TYPE = {
 local SETTING_TYPE = LibBlzSettings.SETTING_TYPE
 local CONTROL_TYPE = LibBlzSettings.CONTROL_TYPE
 local Utils = {}
+LibBlzSettings.Utils = Utils
 
 function Utils.RegisterSetting(addOnName, category, dataTbl, database, varType, name)
 
@@ -187,7 +186,8 @@ local CONTROL_TYPE_METADATA = {
             local checkboxSetting = Utils.RegisterSetting(addOnName, category, dataTbl, database, Settings.VarType.Boolean)
             local dropdownSetting = Utils.RegisterSetting(addOnName, category, dataTbl.dropdown, database, dropdownVarType, dataTbl.dropdown.name or dataTbl.name)
 
-            local data = {
+            local data =
+            {
                 name = dataTbl.name,
                 tooltip = dataTbl.tooltip,
                 setting = checkboxSetting,  -- 把选择框的设置项单独加进去 子选项才会跟着该选项锁定
@@ -253,7 +253,8 @@ local CONTROL_TYPE_METADATA = {
                 end)
             end
             
-            local data = {
+            local data =
+            {
                 name = dataTbl.name,
                 tooltip = dataTbl.tooltip,
                 setting = checkboxSetting,  -- 把选择框的设置项单独加进去 子选项才会跟着该选项锁定
@@ -348,9 +349,9 @@ local CONTROL_TYPE_METADATA = {
                 end
 
                 local data = container:GetData()
-				for index, optionData in ipairs(data) do
-					optionData.onEnter = OnOptionEnter
-				end
+                for index, optionData in ipairs(data) do
+                    optionData.onEnter = OnOptionEnter
+                end
 
                 return data
             end
@@ -418,63 +419,25 @@ local CONTROL_TYPE_METADATA = {
             end
             ]]
         end
-    },
-    [CONTROL_TYPE.EDITBOX] = {
-        setting = {
-            varType = Settings.VarType.String
-        },
-        buildFunction = function (addOnName, category, layout, dataTbl, database)
-            local setting = Utils.RegisterSetting(addOnName, category, dataTbl, database, Settings.VarType.String)
-            local initializer = Settings.CreateControlInitializer("LibBlzSettingsEditboxControlTemplate", setting, nil, dataTbl.tooltip)
-            initializer:AddSearchTags(dataTbl.name)
-            layout:AddInitializer(initializer)
-            return setting, initializer
-        end
-    },
-    [CONTROL_TYPE.CHECKBOX_AND_EDITBOX] = {
-        setting = {
-            inherits = CONTROL_TYPE.CHECKBOX,
-        },
-        requireArguments = {
-            editbox = Utils.CheckControlType(CONTROL_TYPE.EDITBOX)
-        },
-        buildFunction = function (addOnName, category, layout, dataTbl, database)
-            local checkboxSetting = Utils.RegisterSetting(addOnName, category, dataTbl, database, Settings.VarType.Boolean)
-            local editboxSetting = Utils.RegisterSetting(addOnName, category, dataTbl.editbox, database, Settings.VarType.String, dataTbl.editbox.name or dataTbl.name)
-            local data = {
-                name = dataTbl.name,
-                tooltip = dataTbl.tooltip,
-                setting = checkboxSetting,  -- 把选择框的设置项单独加进去 子选项才会跟着该选项锁定
-                cbSetting = checkboxSetting,
-                cbLabel = dataTbl.name,
-                cbTooltip = dataTbl.tooltip,
-                editboxSetting = editboxSetting,
-                editboxLabel = dataTbl.editbox.name or dataTbl.name,
-                editboxTooltip = dataTbl.editbox.tooltip or dataTbl.tooltip,
-            }
-            local initializer = Settings.CreateSettingInitializer("LibBlzSettingsCheckboxEditboxControlTemplate", data)
-            initializer:AddSearchTags(dataTbl.name)
-            layout:AddInitializer(initializer)
-            return checkboxSetting, initializer
-        end
-    },
+    }
 }
 
 function Utils.CheckControl(dataTbl, controlType)
     controlType = controlType or dataTbl.controlType
+    local controlTypeMetaData = dataTbl.controlTypeMetaData or CONTROL_TYPE_METADATA[controlType]
 
-    if CONTROL_TYPE_METADATA[controlType] then
-        if CONTROL_TYPE_METADATA[controlType].setting then
+    if controlTypeMetaData then
+        if controlTypeMetaData.setting then
             -- 检查设置键名
             if type(dataTbl.key) ~= "string" then
                 return false
             end
             -- 检查要求
-            if type(CONTROL_TYPE_METADATA[controlType].setting.require) == "function" and not CONTROL_TYPE_METADATA[controlType].setting.require() then
+            if type(controlTypeMetaData.setting.require) == "function" and not controlTypeMetaData.setting.require() then
                 return false
             end
             -- 检查继承类型
-            if CONTROL_TYPE_METADATA[controlType].setting.inherits and not Utils.CheckControl(dataTbl, CONTROL_TYPE_METADATA[controlType].setting.inherits) then
+            if controlTypeMetaData.setting.inherits and not Utils.CheckControl(dataTbl, controlTypeMetaData.setting.inherits) then
                 return false
             end
             -- 检查选项类型
@@ -492,8 +455,8 @@ function Utils.CheckControl(dataTbl, controlType)
             end
         end
         -- 检查必要参数完整性
-        if CONTROL_TYPE_METADATA[controlType].requireArguments then
-            for k, varType in pairs(CONTROL_TYPE_METADATA[controlType].requireArguments) do
+        if controlTypeMetaData.requireArguments then
+            for k, varType in pairs(controlTypeMetaData.requireArguments) do
                 -- 检查必要参数是否完整
                 if not (dataTbl[k] and (
                     (type(varType) == "string" and type(dataTbl[k]) == varType) or
@@ -508,11 +471,15 @@ function Utils.CheckControl(dataTbl, controlType)
 end
 
 local function SetupControl(addOnName, category, layout, dataTbl, database)
-    if CONTROL_TYPE_METADATA[dataTbl.controlType] and Utils.CheckControl(dataTbl) then
+    local controlTypeMetaData = dataTbl.controlTypeMetaData or CONTROL_TYPE_METADATA[dataTbl.controlType]
+    if controlTypeMetaData and Utils.CheckControl(dataTbl) then
+        --[[
         if type(dataTbl.isVisible) == "function" and not dataTbl.isVisible() then
             return
         end
-        if type(CONTROL_TYPE_METADATA[dataTbl.controlType].buildFunction) == "function" then
+        ]]
+        if type(controlTypeMetaData.buildFunction) == "function" then
+
             -- 指定额外的表 (而不是分类使用的表) 来储存数据
             if type(dataTbl.database) == "table" then
                 database = dataTbl.database
@@ -520,7 +487,7 @@ local function SetupControl(addOnName, category, layout, dataTbl, database)
                 database = _G[dataTbl.database]
             end
 
-            local setting, initializer = CONTROL_TYPE_METADATA[dataTbl.controlType].buildFunction(addOnName, category, layout, dataTbl, database)
+            local setting, initializer = controlTypeMetaData.buildFunction(addOnName, category, layout, dataTbl, database)
 
             initializer.LibBlzSettingsData = dataTbl
 
@@ -530,7 +497,7 @@ local function SetupControl(addOnName, category, layout, dataTbl, database)
                 end
             end
 
-            if CONTROL_TYPE_METADATA[dataTbl.controlType].setting then
+            if controlTypeMetaData.setting then
                 -- 添加可更改标记
                 if type(dataTbl.isModifiable) == "function" then
                     initializer:AddModifyPredicate(dataTbl.isModifiable)
@@ -569,6 +536,28 @@ local function BuildCategory(addOnName, dataTbl, database, parentCategory)
         category, layout = Settings.RegisterVerticalLayoutCategory(dataTbl.name or addOnName)
     end
 
+    layout.displayInitializers = {}
+
+    -- 每次重新判断是否显示
+    function layout:GetInitializers()
+        table.wipe(self.displayInitializers)
+        for i, initializer in ipairs(self.initializers) do
+            if initializer.LibBlzSettingsData then
+                if not (type(initializer.LibBlzSettingsData.isVisible) == "function" and not initializer.LibBlzSettingsData.isVisible()) then
+                    tinsert(self.displayInitializers, initializer)
+                end
+            end
+        end
+
+        return self.displayInitializers
+    end
+
+    function layout:Refresh()
+        if SettingsPanel:GetCurrentLayout() == self then
+            SettingsPanel:DisplayLayout(self)
+        end
+    end
+
     if type(database) == "table" then
         -- 提供了表类型作为数据库, 不做额外处理
     elseif type(database) == "string" and type(_G[database]) == "table" then
@@ -586,6 +575,7 @@ local function BuildCategory(addOnName, dataTbl, database, parentCategory)
     elseif type(dataTbl.database) == "string" and type(_G[dataTbl.database]) == "table" then
         database = _G[dataTbl.database]
     end
+
 
     -- 注册设置项目
     if type(dataTbl.settings) == "table" then
@@ -611,7 +601,8 @@ end
 hooksecurefunc(SettingsControlMixin, "Init", function (self, initializer)
     if initializer and initializer.LibBlzSettingsData then
         local data = initializer.LibBlzSettingsData
-        if type(CONTROL_TYPE_METADATA[data.controlType].onControlInit) == "function" then
+        local controlTypeMetaData = data.controlTypeMetaData or CONTROL_TYPE_METADATA[data.controlType]
+        if type(controlTypeMetaData.onControlInit) == "function" then
             CONTROL_TYPE_METADATA[data.controlType].onControlInit(self, initializer.LibBlzSettingsData)
         end
     end
@@ -625,7 +616,7 @@ hooksecurefunc(SettingsCheckboxDropdownControlMixin, "Init", function (self, ini
             local enabled = SettingsControlMixin.IsEnabled(self)
             self.Control:SetEnabled(enabled and initializer.data.cbSetting:GetValue())
             self.Checkbox:SetEnabled(enabled)
-	        self:DisplayEnabled(enabled)
+            self:DisplayEnabled(enabled)
         end
         -- 用完记得还回去
         function self:Release()
