@@ -1,140 +1,11 @@
-CDDSettingsEditboxMixin = CreateFromMixins(CallbackRegistryMixin, DefaultTooltipMixin);
-CDDSettingsEditboxMixin:GenerateCallbackEvents(
-    {
-        "OnValueChanged",
-    }
-);
-
-function CDDSettingsEditboxMixin:OnLoad()
-    CallbackRegistryMixin.OnLoad(self);
-    DefaultTooltipMixin.OnLoad(self);
-    self.tooltipXOffset = 0;
-end
-
-function CDDSettingsEditboxMixin:Init(value, initTooltip)
-    self:SetValue(value);
-    self:SetTooltipFunc(initTooltip);
-
-    self:SetScript("OnTextChanged", function(editbox, userInput)
-        self:TriggerEvent(CDDSettingsEditboxMixin.Event.OnValueChanged, editbox:GetText());
-    end);
-end
-
-function CDDSettingsEditboxMixin:Release()
-    self:SetScript("OnTextChanged", nil);
-end
-
-function CDDSettingsEditboxMixin:SetValue(value)
-    self:SetText(value);
-end
-
-CDDSettingsEditboxControlMixin = CreateFromMixins(SettingsControlMixin);
-
-function CDDSettingsEditboxControlMixin:OnLoad()
-    SettingsControlMixin.OnLoad(self);
-
-    self.Editbox = CreateFrame("EditBox", nil, self, "CDDSettingsEditboxTemplate");
-    self.Editbox:SetPoint("LEFT", self, "CENTER", -72, 0);
-end
-
-function CDDSettingsEditboxControlMixin:Init(initializer)
-    SettingsControlMixin.Init(self, initializer);
-
-    local setting = self:GetSetting();
-    local initTooltip = GenerateClosure(Settings.InitTooltip, initializer:GetName(), initializer:GetTooltip());
-    self.Editbox:Init(setting:GetValue(), initTooltip);
-    self.cbrHandles:RegisterCallback(self.Editbox, CDDSettingsEditboxMixin.Event.OnValueChanged, self.OnEditboxValueChanged, self);
-    self:EvaluateState();
-end
-
-function CDDSettingsEditboxControlMixin:OnSettingValueChanged(setting, value)
-    SettingsControlMixin.OnSettingValueChanged(self, setting, value);
-end
-
-function CDDSettingsEditboxControlMixin:OnEditboxValueChanged(value)
-    self:GetSetting():SetValue(value);
-end
-
-function CDDSettingsEditboxControlMixin:EvaluateState()
-    SettingsListElementMixin.EvaluateState(self);
-    local enabled = SettingsControlMixin.IsEnabled(self);
-    self.Editbox:SetEnabled(enabled);
-    self:DisplayEnabled(enabled);
-end
-
-function CDDSettingsEditboxControlMixin:Release()
-    self.Editbox:Release();
-    SettingsControlMixin.Release(self);
-end
-
-CDDSettingsCheckboxEditboxControlMixin = CreateFromMixins(SettingsListElementMixin);
-
-function CDDSettingsCheckboxEditboxControlMixin:OnLoad()
-    SettingsListElementMixin.OnLoad(self);
-
-    self.Checkbox = CreateFrame("CheckButton", nil, self, "SettingsCheckboxTemplate");
-    self.Checkbox:SetPoint("LEFT", self, "CENTER", -80, 0);
-
-    self.Control = CreateFrame("EditBox", nil, self, "CDDSettingsEditboxTemplate");
-    self.Control:SetPoint("LEFT", self.Checkbox, "RIGHT", 10, 0);
-    self.Control:SetWidth(200);
-
-    Mixin(self.Control, DefaultTooltipMixin);
-
-    self.Tooltip:SetScript("OnMouseUp", function()
-        if self.Checkbox:IsEnabled() then
-            self.Checkbox:Click();
-        end
-    end);
-end
-
-function CDDSettingsCheckboxEditboxControlMixin:Init(initializer)
-    SettingsListElementMixin.Init(self, initializer);
-
-    local cbSetting = initializer.data.cbSetting;
-    local cbLabel = initializer.data.cbLabel;
-    local cbTooltip = initializer.data.cbTooltip;
-    local editboxSetting = initializer.data.editboxSetting;
-    local editboxLabel = initializer.data.editboxLabel;
-    local editboxTooltip = initializer.data.editboxTooltip;
-
-    local initCheckboxTooltip = GenerateClosure(Settings.InitTooltip, cbLabel, cbTooltip);
-    self:SetTooltipFunc(initCheckboxTooltip);
-
-    self.Checkbox:Init(cbSetting:GetValue(), initCheckboxTooltip);
-    self.cbrHandles:RegisterCallback(self.Checkbox, SettingsCheckboxMixin.Event.OnValueChanged, self.OnCheckboxValueChanged, self);
-
-    local initEditboxTooltip = GenerateClosure(Settings.InitTooltip, editboxLabel, editboxTooltip);
-    self.Control:Init(editboxSetting:GetValue(), initEditboxTooltip);
-    self.cbrHandles:RegisterCallback(self.Control, CDDSettingsEditboxMixin.Event.OnValueChanged, self.OnEditboxValueChanged, self);
-    self.Control:SetEnabled(cbSetting:GetValue());
-end
-
-function CDDSettingsCheckboxEditboxControlMixin:OnCheckboxValueChanged(value)
-    local initializer = self:GetElementData();
-    local cbSetting = initializer.data.cbSetting;
-    cbSetting:SetValue(value);
-    if value then
-        PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON);
-    else
-        PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_OFF);
-    end
-
-    self.Control:SetEnabled(value);
-end
-
-function CDDSettingsCheckboxEditboxControlMixin:OnEditboxValueChanged(value)
-    local initializer = self:GetElementData();
-    local editboxSetting = initializer.data.editboxSetting;
-    editboxSetting:SetValue(value);
-end
+local LibBlzSettings = LibStub("LibBlzSettings-1.0")
 
 CDDSettingsEditboxButtonControlMixin = CreateFromMixins(SettingsListElementMixin);
 
 function CDDSettingsEditboxButtonControlMixin:OnLoad()
     SettingsListElementMixin.OnLoad(self);
 
-    self.Editbox = CreateFrame("EditBox", nil, self, "CDDSettingsEditboxTemplate");
+    self.Editbox = CreateFrame("EditBox", nil, self, "LibBlzSettingsEditboxTemplate");
     self.Editbox:SetPoint("LEFT", self, "CENTER", -80, 0);
     self.Editbox:SetWidth(150);
     
@@ -156,7 +27,7 @@ function CDDSettingsEditboxButtonControlMixin:Init(initializer)
     local initEditboxTooltip = GenerateClosure(Settings.InitTooltip, editboxLabel, editboxTooltip);
     self.Editbox:Init(setting and setting:GetValue() or "", initEditboxTooltip);
     if setting then
-        self.cbrHandles:RegisterCallback(self.Editbox, CDDSettingsEditboxMixin.Event.OnValueChanged, self.OnEditboxValueChanged, self);
+        self.cbrHandles:RegisterCallback(self.Editbox, LibBlzSettingsEditboxMixin.Event.OnValueChanged, self.OnEditboxValueChanged, self);
     end
     
     self.Button:SetText(initializer.data.buttonText);
@@ -177,6 +48,33 @@ function CDDSettingsEditboxButtonControlMixin:Release()
     SettingsListElementMixin.Release(self);
 end
 
+function CDDSettingsEditboxAndButtonBuildFunction(addOnName, category, layout, dataTbl, database)
+    local setting
+    if dataTbl.key then
+        setting = LibBlzSettings.RegisterSetting(addOnName, category, dataTbl, database, Settings.VarType.String, dataTbl.name)
+    end
+     local data = {
+        key = dataTbl.key,
+        name = dataTbl.name,
+        tooltip = dataTbl.tooltip,
+        setting = setting,
+        editboxLabel = dataTbl.editboxLabel,
+        editboxTooltip = dataTbl.editboxTooltip,
+        buttonText = dataTbl.button.buttonText,
+        OnButtonClick = dataTbl.button.OnButtonClick
+    }
+    local initializer = Settings.CreateSettingInitializer("CDDSettingsEditboxButtonControlTemplate", data)
+    if dataTbl.canSearch or dataTbl.canSearch == nil then
+        initializer:AddSearchTags(dataTbl.name)
+    end
+    layout:AddInitializer(initializer)
+    return setting, initializer
+end
+
+LibBlzSettings.RegisterControl("EDITBOX_AND_BUTTON", function (addOnName, category, layout, dataTbl, database)
+    return CDDSettingsEditboxAndButtonBuildFunction(addOnName, category, layout, dataTbl, database)
+end, nil, nil)
+
 CDDSettingsListSectionLabelMixin = CreateFromMixins();
 
 function CDDSettingsListSectionLabelMixin:Init(initializer)
@@ -185,3 +83,15 @@ function CDDSettingsListSectionLabelMixin:Init(initializer)
     self.Title:SetWidth(self:GetWidth() - 7)
     self:SetHeight(self.Title:GetStringHeight() + 10)
 end
+
+LibBlzSettings.RegisterControl("LABEL", function (addOnName, category, layout, dataTbl, database)
+    local initializer = Settings.CreateSettingInitializer("CDDSettingsListSectionLabelTemplate", dataTbl)
+
+    if dataTbl.canSearch or dataTbl.canSearch == nil then
+        initializer:AddSearchTags(dataTbl.name)
+    end
+
+    layout:AddInitializer(initializer)
+
+    return _, initializer
+end, nil, nil)
