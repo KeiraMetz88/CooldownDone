@@ -5,7 +5,7 @@ CDDSettingsEditboxButtonControlMixin = CreateFromMixins(SettingsListElementMixin
 function CDDSettingsEditboxButtonControlMixin:OnLoad()
     SettingsListElementMixin.OnLoad(self);
 
-    self.Editbox = CreateFrame("EditBox", nil, self, "LibBlzSettingsEditboxTemplate");
+    self.Editbox = CreateFrame("EditBox", nil, self, "CDDLibBlzSettingsEditboxTemplate");
     self.Editbox:SetPoint("LEFT", self, "CENTER", -80, 0);
     self.Editbox:SetWidth(150);
     

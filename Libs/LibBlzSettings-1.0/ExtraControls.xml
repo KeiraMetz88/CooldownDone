@@ -2,28 +2,28 @@
 ..\FrameXML\UI.xsd">
 	<Script file="ExtraControls.lua" />
 
-	<Frame name="LibBlzSettingsEditboxControlTemplate" inherits="SettingsListElementTemplate" mixin="LibBlzSettingsEditboxControlMixin" virtual="true">
+	<Frame name="CDDLibBlzSettingsEditboxControlTemplate" inherits="SettingsListElementTemplate" mixin="LibBlzSettingsEditboxControlMixin" virtual="true">
 		<Size x="280" y="26"/>
 		<Scripts>
 			<OnLoad method="OnLoad"/>
 		</Scripts>
 	</Frame>
 
-	<Frame name="LibBlzSettingsCheckboxEditboxControlTemplate" inherits="SettingsListElementTemplate" mixin="LibBlzSettingsCheckboxEditboxControlMixin" virtual="true">
+	<Frame name="CDDLibBlzSettingsCheckboxEditboxControlTemplate" inherits="SettingsListElementTemplate" mixin="LibBlzSettingsCheckboxEditboxControlMixin" virtual="true">
 		<Size x="280" y="26"/>
 		<Scripts>
 			<OnLoad method="OnLoad"/>
 		</Scripts>
 	</Frame>
 
-	<Frame name="LibBlzSettingsColorControlTemplate" inherits="SettingsListElementTemplate" mixin="LibBlzSettingsColorControlMixin" virtual="true">
+	<Frame name="CDDLibBlzSettingsColorControlTemplate" inherits="SettingsListElementTemplate" mixin="LibBlzSettingsColorControlMixin" virtual="true">
 		<Size x="280" y="26"/>
 		<Scripts>
 			<OnLoad method="OnLoad"/>
 		</Scripts>
 	</Frame>
 
-	<EditBox name="LibBlzSettingsEditboxTemplate" inherits="InputBoxScriptTemplate" mixin="LibBlzSettingsEditboxMixin" autoFocus="false" virtual="true">
+	<EditBox name="CDDLibBlzSettingsEditboxTemplate" inherits="InputBoxScriptTemplate" mixin="LibBlzSettingsEditboxMixin" autoFocus="false" virtual="true">
         <Size x="280" y="26"/>
         <Layers>
             <Layer level="BACKGROUND">

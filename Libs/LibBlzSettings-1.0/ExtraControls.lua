@@ -55,7 +55,7 @@ LibBlzSettingsEditboxControlMixin = CreateFromMixins(SettingsControlMixin)
 function LibBlzSettingsEditboxControlMixin:OnLoad()
     SettingsControlMixin.OnLoad(self)
 
-    self.Editbox = CreateFrame("EditBox", nil, self, "LibBlzSettingsEditboxTemplate")
+    self.Editbox = CreateFrame("EditBox", nil, self, "CDDLibBlzSettingsEditboxTemplate")
     self.Editbox:SetPoint("LEFT", self, "CENTER", -72, 0)
 end
 
@@ -104,7 +104,7 @@ LibBlzSettings.RegisterControl(CONTROL_TYPE.EDITBOX, function (addOnName, catego
         options = {},
     }
 
-    local initializer = Settings.CreateSettingInitializer("LibBlzSettingsEditboxControlTemplate", data)
+    local initializer = Settings.CreateSettingInitializer("CDDLibBlzSettingsEditboxControlTemplate", data)
 
     if dataTbl.canSearch or dataTbl.canSearch == nil then
         initializer:AddSearchTags(dataTbl.name)
@@ -129,7 +129,7 @@ function LibBlzSettingsCheckboxEditboxControlMixin:OnLoad()
     self.Checkbox = CreateFrame("CheckButton", nil, self, "SettingsCheckboxTemplate")
     self.Checkbox:SetPoint("LEFT", self, "CENTER", -80, 0)
 
-    self.Editbox = CreateFrame("EditBox", nil, self, "LibBlzSettingsEditboxTemplate")
+    self.Editbox = CreateFrame("EditBox", nil, self, "CDDLibBlzSettingsEditboxTemplate")
     self.Editbox:SetPoint("LEFT", self.Checkbox, "RIGHT", 10, 0)
     -- self.Editbox:SetWidth(200)
 
@@ -229,7 +229,7 @@ LibBlzSettings.RegisterControl(
             editboxTooltip = dataTbl.editbox.tooltip or dataTbl.tooltip
         }
 
-        local initializer = Settings.CreateSettingInitializer("LibBlzSettingsCheckboxEditboxControlTemplate", data)
+        local initializer = Settings.CreateSettingInitializer("CDDLibBlzSettingsCheckboxEditboxControlTemplate", data)
 
         if dataTbl.canSearch or dataTbl.canSearch == nil then
             initializer:AddSearchTags(dataTbl.name)
@@ -362,7 +362,7 @@ LibBlzSettings.RegisterControl(
             options = {},
         }
 
-        local initializer = Settings.CreateSettingInitializer("LibBlzSettingsColorControlTemplate", data)
+        local initializer = Settings.CreateSettingInitializer("CDDLibBlzSettingsColorControlTemplate", data)
 
         if dataTbl.canSearch or dataTbl.canSearch == nil then
             initializer:AddSearchTags(dataTbl.name)
