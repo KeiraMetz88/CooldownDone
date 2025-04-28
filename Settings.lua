@@ -1,11 +1,16 @@
 local ADDON_NAME, CooldownDone = ...
 
+local L = CooldownDone.Locale
+
 local LibBlzSettings = LibStub("LibBlzSettings-1.0")
 local CONTROL_TYPE = LibBlzSettings.CONTROL_TYPE
 local SETTING_TYPE = LibBlzSettings.SETTING_TYPE
 
 CooldownDone.category = nil
-local CATEGORY_NAME_AURA = "BUFF列表"
+local CATEGORY_NAME_AURA = L["BuffList"]
+local CATEGORY_NAME_ABILITIES = L["AbilityList"]
+local CONTROL_AURA_EXPIRED = L["AuraExpired"]
+local CONTROL_AURA_GAINED = L["AuraGained"]
 
 -- Matches a similar function reused in multiple places
 local function EnumerateTaintedKeysTable(tableToIterate)
@@ -20,16 +25,16 @@ end
 function CooldownDone:addAura(control)
     local auraID = tonumber(control.Editbox:GetText())
     if not auraID or auraID <= 0 then
-        print("|cffff0000请输入ID|r")
+        print("|cffff0000" .. L["PleaseEnterID"] .. "|r")
         return
     end
     local auraName = C_Spell.GetSpellName(auraID)
     if not auraName then
-        print("|cffff0000未找到，请输入正确的ID|r")
+        print("|cffff0000" .. L["IDNotFound"] .. "|r")
         return
     end
     if self.auras[auraID] then
-        print(string.format("|cffff0000%s-%s已经存在|r", auraID, auraName))
+        print(string.format("|cffff0000%s-%s " .. L["IDExists"] .. "|r", auraID, auraName))
         return
     end
     local key = string.format("CooldownDone.aura.%s.name", auraID)
@@ -46,9 +51,9 @@ function CooldownDone:addAura(control)
         name = name,
         key = key,
         default = "",
-        editboxTooltip = "自定义BUFF名称",
+        editboxTooltip = L["CustomName"],
         button = {
-            buttonText = "移除",
+            buttonText = REMOVE,
             OnButtonClick = function(control)
                 self:removeAura(control)
             end,
@@ -61,7 +66,7 @@ function CooldownDone:addAura(control)
             initializer.LibBlzSettingsData = {}
             local newInitializers = {}
             for k, v in EnumerateTaintedKeysTable(layout:GetInitializers()) do
-                if v.data.name == "BUFF获得" then
+                if v.data.name == CONTROL_AURA_GAINED then
                     table.insert(newInitializers, initializer)
                 end
                 if v ~= initializer then
@@ -78,16 +83,16 @@ end
 function CooldownDone:addAddedAura(control)
     local auraID = tonumber(control.Editbox:GetText())
     if not auraID or auraID <= 0 then
-        print("|cffff0000请输入ID|r")
+        print("|cffff0000" .. L["PleaseEnterID"] .. "|r")
         return
     end
     local auraName = C_Spell.GetSpellName(auraID)
     if not auraName then
-        print("|cffff0000未找到，请输入正确的ID|r")
+        print("|cffff0000" .. L["IDNotFound"] .. "|r")
         return
     end
     if self.addedAuras[auraID] then
-        print(string.format("|cffff0000%s-%s已经存在|r", auraID, auraName))
+        print(string.format("|cffff0000%s-%s " .. L["IDExists"] .. "|r", auraID, auraName))
         return
     end
     local key = string.format("CooldownDone.addedaura.%s.name", auraID)
@@ -104,9 +109,9 @@ function CooldownDone:addAddedAura(control)
         name = name,
         key = key,
         default = "",
-        editboxTooltip = "自定义BUFF名称",
+        editboxTooltip = L["CustomName"],
         button = {
-            buttonText = "移除",
+            buttonText = REMOVE,
             OnButtonClick = function(control)
                 self:removeAddedAura(control)
             end,
@@ -129,7 +134,7 @@ function CooldownDone:removeAura(control)
     local auraID = key:match("CooldownDone.aura.([%d]+).name")
     auraID = tonumber(auraID)
     if not auraID or auraID <= 0 then
-        print("|cffff0000数据错误|r")
+        print("|cffff0000" .. ERRORS .. "|r")
         return
     end
     local key = string.format("CooldownDone.aura.%s.name", auraID)
@@ -157,7 +162,7 @@ function CooldownDone:removeAddedAura(control)
     local auraID = key:match("CooldownDone.addedaura.([%d]+).name")
     auraID = tonumber(auraID)
     if not auraID or auraID <= 0 then
-        print("|cffff0000数据错误|r")
+        print("|cffff0000" .. ERRORS .. "|r")
         return
     end
     local key = string.format("CooldownDone.addedaura.%s.name", auraID)
@@ -194,53 +199,53 @@ function CooldownDone:prepareSettings()
         })
     end
     local settings = {
-        name = "CD就绪",
+        name = L["addonName"],
         settings = {
             {
                 controlType = CONTROL_TYPE.CHECKBOX,
                 settingType = SETTING_TYPE.ADDON_VARIABLE,
-                name = "启用",
-                tooltip = "启用/禁用插件功能，无需重载界面",
+                name = ENABLE,
+                tooltip = L["EnableTooltip"],
                 key = "CooldownDone.enable",
                 default = true,
             },
             {
                 controlType = CONTROL_TYPE.CHECKBOX,
                 settingType = SETTING_TYPE.ADDON_VARIABLE,
-                name = "调试",
-                tooltip = "启用/禁用调试信息",
+                name = L["Debug"],
+                tooltip = L["DebugTooltip"],
                 key = "CooldownDone.debug",
                 default = false,
             },
             {
                 controlType = CONTROL_TYPE.EDITBOX,
                 settingType = SETTING_TYPE.ADDON_VARIABLE,
-                name = "就绪",
-                tooltip = "技能就绪的文本",
+                name = L["Ready"],
+                tooltip = L["ReadyTooltip"],
                 key = "CooldownDone.doneStr",
-                default = "就绪",
+                default = L["Ready"],
             },
             {
                 controlType = CONTROL_TYPE.EDITBOX,
                 settingType = SETTING_TYPE.ADDON_VARIABLE,
-                name = "获得",
-                tooltip = "获得BUFF的文本",
+                name = L["Gained"],
+                tooltip = L["GainedTooltip"],
                 key = "CooldownDone.addedStr",
-                default = "获得",
+                default = L["Gained"],
             },
             {
                 controlType = CONTROL_TYPE.EDITBOX,
                 settingType = SETTING_TYPE.ADDON_VARIABLE,
-                name = "结束",
-                tooltip = "BUFF结束的文本",
+                name = L["Expired"],
+                tooltip = L["ExpiredTooltip"],
                 key = "CooldownDone.overStr",
-                default = "结束",
+                default = L["Expired"],
             },
             {
                 controlType = CONTROL_TYPE.DROPDOWN,
                 settingType = SETTING_TYPE.ADDON_VARIABLE,
-                name = "语音",
-                tooltip = "选择使用的语音",
+                name = VOICE,
+                tooltip = L["VoiceTooltip"],
                 key = "CooldownDone.ttsVoiceID",
                 default = voiceIDDefault,
                 options = voiceIDOptions,
@@ -248,7 +253,7 @@ function CooldownDone:prepareSettings()
             {
                 controlType = CONTROL_TYPE.SLIDER,
                 settingType = SETTING_TYPE.ADDON_VARIABLE,
-                name = "语速",
+                name = L["VoiceSpeed"],
                 key = "CooldownDone.ttsRate",
                 minValue = TEXTTOSPEECH_RATE_MIN,
                 maxValue = TEXTTOSPEECH_RATE_MAX,
@@ -258,7 +263,7 @@ function CooldownDone:prepareSettings()
             {
                 controlType = CONTROL_TYPE.SLIDER,
                 settingType = SETTING_TYPE.ADDON_VARIABLE,
-                name = "音量",
+                name = VOLUME,
                 key = "CooldownDone.ttsVolume",
                 minValue = TEXTTOSPEECH_VOLUME_MIN,
                 maxValue = TEXTTOSPEECH_VOLUME_MAX,
@@ -267,21 +272,21 @@ function CooldownDone:prepareSettings()
             },
             {
                 controlType = CONTROL_TYPE.BUTTON,
-                name = "测试",
-                buttonText = "点击测试",
+                name = L["Test"],
+                buttonText = L["ClickToTest"],
                 execute = function()
-                    CooldownDone:speakTTS("技能名")
+                    CooldownDone:speakTTS(L["SpellName"])
                 end,
             },
         },
         subCategorys = {
             {
-                name = "技能列表",
+                name = CATEGORY_NAME_ABILITIES,
                 database = CooldownDoneCharDB,
                 settings = {
                     {
                         controlType = "LABEL",
-                        name = "提示：修改天赋/习得法术/切换天赋/切换专精等操作请reload！",
+                        name = L["AbilityListTip"],
                     },
                 },
             },
@@ -291,7 +296,7 @@ function CooldownDone:prepareSettings()
                 settings = {
                     {
                         controlType = "LABEL",
-                        name = "提示：移除BUFF数据后请务必reload！",
+                        name = L["BuffListTip"],
                     },
                 },
             }
@@ -300,7 +305,7 @@ function CooldownDone:prepareSettings()
 
     table.insert(settings.subCategorys[1].settings, {
         controlType = CONTROL_TYPE.SECTION_HEADER,
-        name = "法术列表",
+        name = L["SpellList"],
     })
     for _, spell in pairs(self.spellBookSpells) do
         local keyCheckbox = string.format("CooldownDone.spell.%s.enable", spell.id)
@@ -310,14 +315,14 @@ function CooldownDone:prepareSettings()
             controlType = CONTROL_TYPE.CHECKBOX_AND_EDITBOX,
             settingType = SETTING_TYPE.ADDON_VARIABLE,
             name = name,
-            tooltip = "启用/禁用",
+            tooltip = ENABLE .. "/" .. DISABLE,
             key = keyCheckbox,
             default = false,
             editbox = {
                 controlType = CONTROL_TYPE.EDITBOX,
                 settingType = SETTING_TYPE.ADDON_VARIABLE,
                 name = name,
-                tooltip = "自定义技能名称",
+                tooltip = L["CustomName"],
                 key = keyEditbox,
                 default = "",
             },
@@ -325,7 +330,7 @@ function CooldownDone:prepareSettings()
     end
     table.insert(settings.subCategorys[1].settings, {
         controlType = CONTROL_TYPE.SECTION_HEADER,
-        name = "装备列表",
+        name = L["EquippedItemList"],
     })
     for _, spell in pairs(self.equippedItemSpells) do
         local keyCheckbox = string.format("CooldownDone.spell.%s.enable", spell.id)
@@ -336,14 +341,14 @@ function CooldownDone:prepareSettings()
             controlType = CONTROL_TYPE.CHECKBOX_AND_EDITBOX,
             settingType = SETTING_TYPE.ADDON_VARIABLE,
             name = itemName,
-            tooltip = spellName .. "\n启用/禁用",
+            tooltip = spellName .. "\n" .. ENABLE .. "/" .. DISABLE,
             key = keyCheckbox,
             default = false,
             editbox = {
                 controlType = CONTROL_TYPE.EDITBOX,
                 settingType = SETTING_TYPE.ADDON_VARIABLE,
                 name = itemName,
-                tooltip = spellName .. "\n自定义装备名称",
+                tooltip = spellName .. "\n" .. L["CustomName"],
                 key = keyEditbox,
                 default = "",
             },
@@ -352,14 +357,14 @@ function CooldownDone:prepareSettings()
 
     table.insert(settings.subCategorys[2].settings, {
         controlType = CONTROL_TYPE.SECTION_HEADER,
-        name = "BUFF结束",
+        name = CONTROL_AURA_EXPIRED,
     })
     table.insert(settings.subCategorys[2].settings, {
         controlType = "EDITBOX_AND_BUTTON",
-        name = "添加BUFF ID",
-        tooltip = "输入BUFF ID后点击添加按钮",
+        name = L["AddBuff"],
+        tooltip = L["AddBuffTooltip"],
         button = {
-            buttonText = "添加",
+            buttonText = ADD,
             OnButtonClick = function(control)
                 self:addAura(control)
              end,
@@ -374,9 +379,9 @@ function CooldownDone:prepareSettings()
             name = name,
             key = keyEditbox,
             default = "",
-            editboxTooltip = "自定义BUFF名称",
+            editboxTooltip = L["CustomName"],
             button = {
-                buttonText = "移除",
+                buttonText = REMOVE,
                 OnButtonClick = function(control)
                     self:removeAura(control)
                 end,
@@ -385,14 +390,14 @@ function CooldownDone:prepareSettings()
     end
     table.insert(settings.subCategorys[2].settings, {
         controlType = CONTROL_TYPE.SECTION_HEADER,
-        name = "BUFF获得",
+        name = CONTROL_AURA_GAINED,
     })
     table.insert(settings.subCategorys[2].settings, {
         controlType = "EDITBOX_AND_BUTTON",
-        name = "添加BUFF ID",
-        tooltip = "输入BUFF ID后点击添加按钮",
+        name = L["AddBuff"],
+        tooltip = L["AddBuffTooltip"],
         button = {
-            buttonText = "添加",
+            buttonText = ADD,
             OnButtonClick = function(control)
                 self:addAddedAura(control)
              end,
@@ -407,9 +412,9 @@ function CooldownDone:prepareSettings()
             name = name,
             key = keyEditbox,
             default = "",
-            editboxTooltip = "自定义BUFF名称",
+            editboxTooltip = L["CustomName"],
             button = {
-                buttonText = "移除",
+                buttonText = REMOVE,
                 OnButtonClick = function(control)
                     self:removeAddedAura(control)
                 end,

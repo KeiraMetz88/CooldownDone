@@ -5,6 +5,8 @@ CooldownDone.equippedItemSpells = {}
 CooldownDone.auras = {}
 CooldownDone.addedAuras = {}
 CooldownDone.cooldownFrames = {}
+CooldownDone.Locale = {}
+local L = CooldownDone.Locale
 
 local function prepareDB()
     CooldownDoneDB = (type(CooldownDoneDB) == "table" and CooldownDoneDB) or {}
@@ -36,7 +38,7 @@ function CooldownDone:getPlayerSpellBookSpells()
                 if spellID and spellID > 0 and not excludedSpells[spellID] and not self.spellBookSpells[spellID] then
                     self.spellBookSpells[spellID] = {
                         id = spellID,
-                        name = C_Spell.GetSpellName(spellID) or "未知法术",
+                        name = C_Spell.GetSpellName(spellID) or L["UnknownSpell"],
                         texture = C_Spell.GetSpellTexture(spellID)
                     }
                 end
@@ -57,7 +59,7 @@ function CooldownDone:getAuras()
             if not self.auras[auraID] then
                 self.auras[auraID] = {
                     id = auraID,
-                    name = C_Spell.GetSpellName(auraID) or "未知光环",
+                    name = C_Spell.GetSpellName(auraID) or L["UnknownAura"],
                     texture = C_Spell.GetSpellTexture(auraID)
                 }
             end
@@ -68,7 +70,7 @@ function CooldownDone:getAuras()
             if not self.addedAuras[auraID] then
                 self.addedAuras[auraID] = {
                     id = auraID,
-                    name = C_Spell.GetSpellName(auraID) or "未知光环",
+                    name = C_Spell.GetSpellName(auraID) or L["UnknownAura"],
                     texture = C_Spell.GetSpellTexture(auraID)
                 }
             end
@@ -85,7 +87,7 @@ function CooldownDone:getEquippedItemSpells(prepareSettings)
             table.insert(itemIDs, {itemID = itemID, from = "equipped"})
         end
     end
-    for containerIndex = 0, 4 do
+    for containerIndex = BACKPACK_CONTAINER, NUM_BAG_SLOTS do
         for slotIndex = 1, C_Container.GetContainerNumSlots(containerIndex) do
             itemID = C_Container.GetContainerItemID(containerIndex, slotIndex)
             if itemID then
@@ -131,16 +133,16 @@ function CooldownDone:speakTTS(text, typeStr)
     local ttsRate = CooldownDoneDB and CooldownDoneDB["CooldownDone.ttsRate"] or 0
     local ttsVolume = CooldownDoneDB and CooldownDoneDB["CooldownDone.ttsVolume"] or 100
     local textPrepend = ""
-    local textAppend = CooldownDoneDB and CooldownDoneDB["CooldownDone.doneStr"] or "就绪"
+    local textAppend = CooldownDoneDB and CooldownDoneDB["CooldownDone.doneStr"] or L["Ready"]
     if typeStr == "over" then
-        textAppend = CooldownDoneDB and CooldownDoneDB["CooldownDone.overStr"] or "结束"
+        textAppend = CooldownDoneDB and CooldownDoneDB["CooldownDone.overStr"] or L["Expired"]
     end
     if typeStr == "added" then
-        textPrepend = CooldownDoneDB and CooldownDoneDB["CooldownDone.addedStr"] or "获得"
+        textPrepend = CooldownDoneDB and CooldownDoneDB["CooldownDone.addedStr"] or L["Gained"]
         textAppend = ""
     end
     self:debug("speakTTS: " .. text .. textAppend)
-    C_VoiceChat.SpeakText(ttsVoiceID, textPrepend .. text .. textAppend, Enum.VoiceTtsDestination.LocalPlayback, ttsRate, ttsVolume)
+    C_VoiceChat.SpeakText(ttsVoiceID, textPrepend .. " " .. text .. " " .. textAppend, Enum.VoiceTtsDestination.LocalPlayback, ttsRate, ttsVolume)
 end
 
 function CooldownDone:UNIT_SPELLCAST_SUCCEEDED(spellID, immediately)
@@ -169,7 +171,7 @@ function CooldownDone:UNIT_SPELLCAST_SUCCEEDED(spellID, immediately)
             if chargeInfo then
                 if chargeInfo.currentCharges == chargeInfo.maxCharges or chargeInfo.currentCharges > 0 then
                     if self.cooldownFrames[spellID] and self.cooldownFrames[spellID]:GetScript("OnCooldownDone") then
-                        name = C_Spell.GetSpellName(spellID) or "未知法术"
+                        name = C_Spell.GetSpellName(spellID) or L["UnknownSpell"]
                         local keyName = string.format("CooldownDone.spell.%s.name", spellID)
                         if CooldownDoneCharDB and CooldownDoneCharDB[keyName] and CooldownDoneCharDB[keyName] ~= "" then
                             name = CooldownDoneCharDB[keyName]
@@ -182,7 +184,7 @@ function CooldownDone:UNIT_SPELLCAST_SUCCEEDED(spellID, immediately)
             end
             local spellCooldownInfo = C_Spell.GetSpellCooldown(spellID) or {startTime = 0, duration = 0, isEnabled = false, modRate = 0}
             startTime, duration, isEnabled, modRate = spellCooldownInfo.startTime, spellCooldownInfo.duration, spellCooldownInfo.isEnabled, spellCooldownInfo.modRate
-            name = C_Spell.GetSpellName(spellID) or "未知法术"
+            name = C_Spell.GetSpellName(spellID) or L["UnknownSpell"]
         end
         local keyName = string.format("CooldownDone.spell.%s.name", spellID)
         if CooldownDoneCharDB and CooldownDoneCharDB[keyName] and CooldownDoneCharDB[keyName] ~= "" then
