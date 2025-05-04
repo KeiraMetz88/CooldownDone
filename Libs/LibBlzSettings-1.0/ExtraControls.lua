@@ -30,7 +30,7 @@ function LibBlzSettingsEditboxMixin:Init(value, initTooltip)
     self:SetTooltipFunc(initTooltip)
 
     self:SetScript("OnTextChanged", function(editbox, userInput)
-        if userInput then   -- 限制: 用户输入才触发
+        if userInput and not IMECandidatesFrame:IsShown() then   -- 限制: 用户输入才触发
             self:TriggerEvent(LibBlzSettingsEditboxMixin.Event.OnValueChanged, editbox:GetText())
         end
     end)
