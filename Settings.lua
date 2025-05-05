@@ -224,6 +224,7 @@ function CooldownDone:prepareSettings()
                 tooltip = L["ReadyTooltip"],
                 key = "CooldownDone.doneStr",
                 default = L["Ready"],
+                template = "CDDSettingsEditboxControlTemplate",
             },
             {
                 controlType = CONTROL_TYPE.EDITBOX,
@@ -232,6 +233,7 @@ function CooldownDone:prepareSettings()
                 tooltip = L["GainedTooltip"],
                 key = "CooldownDone.addedStr",
                 default = L["Gained"],
+                template = "CDDSettingsEditboxControlTemplate",
             },
             {
                 controlType = CONTROL_TYPE.EDITBOX,
@@ -240,6 +242,7 @@ function CooldownDone:prepareSettings()
                 tooltip = L["ExpiredTooltip"],
                 key = "CooldownDone.overStr",
                 default = L["Expired"],
+                template = "CDDSettingsEditboxControlTemplate",
             },
             {
                 controlType = CONTROL_TYPE.DROPDOWN,
@@ -318,6 +321,7 @@ function CooldownDone:prepareSettings()
             tooltip = ENABLE .. "/" .. DISABLE,
             key = keyCheckbox,
             default = false,
+            template = "CDDSettingsCheckboxEditboxControlTemplate",
             editbox = {
                 controlType = CONTROL_TYPE.EDITBOX,
                 settingType = SETTING_TYPE.ADDON_VARIABLE,
@@ -344,6 +348,7 @@ function CooldownDone:prepareSettings()
             tooltip = spellName .. "\n" .. ENABLE .. "/" .. DISABLE,
             key = keyCheckbox,
             default = false,
+            template = "CDDSettingsCheckboxEditboxControlTemplate",
             editbox = {
                 controlType = CONTROL_TYPE.EDITBOX,
                 settingType = SETTING_TYPE.ADDON_VARIABLE,

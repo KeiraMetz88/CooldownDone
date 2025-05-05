@@ -2,13 +2,27 @@
 ..\Blizzard_SharedXML\UI.xsd">
     <Script file="SettingControls.lua"/>
 
+    <Frame name="CDDSettingsEditboxControlTemplate" inherits="SettingsListElementTemplate" mixin="LibBlzSettingsEditboxControlMixin" virtual="true">
+        <Size x="280" y="26"/>
+        <Scripts>
+            <OnLoad method="OnLoad"/>
+        </Scripts>
+    </Frame>
+
+    <Frame name="CDDSettingsCheckboxEditboxControlTemplate" inherits="SettingsListElementTemplate" mixin="LibBlzSettingsCheckboxEditboxControlMixin" virtual="true">
+        <Size x="280" y="26"/>
+        <Scripts>
+            <OnLoad method="OnLoad"/>
+        </Scripts>
+    </Frame>
+
     <Frame name="CDDSettingsEditboxButtonControlTemplate" inherits="SettingsListElementTemplate" mixin="CDDSettingsEditboxButtonControlMixin" virtual="true">
         <Size x="280" y="26"/>
         <Scripts>
             <OnLoad method="OnLoad"/>
         </Scripts>
     </Frame>
-    
+
     <Frame name="CDDSettingsListSectionLabelTemplate" mixin="CDDSettingsListSectionLabelMixin" virtual="true">
         <Size x="280" y="20"/>
         <Layers>

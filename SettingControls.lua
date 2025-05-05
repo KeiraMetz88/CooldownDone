@@ -5,12 +5,35 @@ CDDSettingsEditboxButtonControlMixin = CreateFromMixins(SettingsListElementMixin
 function CDDSettingsEditboxButtonControlMixin:OnLoad()
     SettingsListElementMixin.OnLoad(self);
 
-    self.Editbox = CreateFrame("EditBox", nil, self, "CDDLibBlzSettingsEditboxTemplate");
-    self.Editbox:SetPoint("LEFT", self, "CENTER", -80, 0);
-    self.Editbox:SetWidth(150);
+    self.Editbox = CreateFrame("EditBox", nil, self, "InputBoxTemplate")
+
+    Mixin(self.Editbox, DefaultTooltipMixin)
+    DefaultTooltipMixin.OnLoad(self.Editbox)
+    self.tooltipXOffset = 0
+
+    self.Editbox:SetPoint("LEFT", self, "CENTER", -80, 0)
+    self.Editbox:SetSize(200, 26)
+    self.Editbox:SetAutoFocus(false)
+
+    self.Editbox.Left:SetHeight(26)
+    self.Editbox.Right:SetHeight(26)
+    self.Editbox.Middle:SetHeight(26)
+
+    self.Editbox:SetScript("OnEnable", function (editbox)
+        editbox:SetTextColor(1, 1, 1)
+    end)
+
+    self.Editbox:SetScript("OnDisable", function (editbox)
+        editbox:SetTextColor(0.5, 0.5, 0.5)
+    end)
+
+    self.Editbox:SetScript("OnEnterPressed", EditBox_ClearFocus)    -- 回车清楚焦点
+    self.Editbox:SetScript("OnEscapePressed", EditBox_ClearFocus)   -- ESC清除焦点
+
+    Mixin(self.Editbox, DefaultTooltipMixin)
     
     self.Button = CreateFrame("Button", nil, self, "UIPanelButtonTemplate");
-    self.Button:SetWidth(100, 26);
+    self.Button:SetSize(100, 26);
     self.Button:SetPoint("LEFT", self.Editbox, "RIGHT", 5, 0);
     
     Mixin(self.Button, DefaultTooltipMixin);
@@ -25,15 +48,26 @@ function CDDSettingsEditboxButtonControlMixin:Init(initializer)
     local editboxTooltip = initializer.data.editboxTooltip or initializer.data.tooltip;
 
     local initEditboxTooltip = GenerateClosure(Settings.InitTooltip, editboxLabel, editboxTooltip);
-    self.Editbox:Init(setting and setting:GetValue() or "", initEditboxTooltip);
+    self.Editbox:SetTooltipFunc(initEditboxTooltip)
+    self.Editbox:SetText(setting and setting:GetValue() or "")
     if setting then
-        self.cbrHandles:RegisterCallback(self.Editbox, LibBlzSettingsEditboxMixin.Event.OnValueChanged, self.OnEditboxValueChanged, self);
+        self.Editbox:SetScript("OnTextChanged", function(editbox, userInput)
+            if userInput and not IMECandidatesFrame:IsShown() then  -- 限制: 用户输入/输入法框体未显示
+                self:OnEditboxValueChanged(editbox:GetText())
+            end
+        end)
+        local function OnEditboxSettingValueChanged(o, setting, value)
+            self.Editbox:SetText(value)
+        end
+        self.cbrHandles:SetOnValueChangedCallback(setting:GetVariable(), OnEditboxSettingValueChanged)
     end
     
     self.Button:SetText(initializer.data.buttonText);
     self.Button:SetScript("OnClick", function()
         initializer.data.OnButtonClick(self)
     end);
+
+    self:EvaluateState()
 end
 
 function CDDSettingsEditboxButtonControlMixin:OnEditboxValueChanged(value)
@@ -43,7 +77,7 @@ function CDDSettingsEditboxButtonControlMixin:OnEditboxValueChanged(value)
 end
 
 function CDDSettingsEditboxButtonControlMixin:Release()
-    self.Editbox:Release();
+    self.Editbox:SetScript("OnTextChanged", nil)
     self.Button:SetScript("OnClick", nil);
     SettingsListElementMixin.Release(self);
 end
