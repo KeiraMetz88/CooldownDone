@@ -137,13 +137,13 @@ function CooldownDone:speakTTS(text, typeStr)
     if tonumber(text) then
         local willPlay, _ = PlaySoundFile(tonumber(text), "Master")
         if not willPlay then
-            print("|cffff0000CDD(" .. GetTime() .. "): " .. L["ERR_PlaySoundFile"] .. "|r")
+            print("|cffff0000CDD: " .. text .. " " .. L["ERR_PlaySoundFile"] .. "|r")
         end
         return
-    elseif string_sub(t, 1, 10) == "Interface\\" then
+    elseif string_sub(text, 1, 17) == "Interface\\AddOns\\" then
         local willPlay, _ = PlaySoundFile(text, "Master")
         if not willPlay then
-            print("|cffff0000CDD(" .. GetTime() .. "): " .. L["ERR_PlaySoundFile"] .. "|r")
+            print("|cffff0000CDD: " .. text .. " " .. L["ERR_PlaySoundFile"] .. "|r")
         end
         return
     end
@@ -267,8 +267,11 @@ function CooldownDone:UNIT_AURA(updateInfo)
     if updateInfo.addedAuras ~= nil then
         for _, addedAura in ipairs(updateInfo.addedAuras) do
             key = string.format("CooldownDone.aura.%s.name", addedAura.spellId)
-            if CooldownDoneCharDB and CooldownDoneCharDB[key] ~= nil and not self.trackingAuras[addedAura.auraInstanceID] then
-                self.trackingAuras[addedAura.auraInstanceID] = addedAura
+            if not self.trackingAuras[addedAura.auraInstanceID] then
+                self.trackingAuras[addedAura.auraInstanceID] = {
+                    spellId = addedAura.spellId,
+                    name = addedAura.name,
+                }
             end
             key = string.format("CooldownDone.addedaura.%s.name", addedAura.spellId)
             if CooldownDoneCharDB and CooldownDoneCharDB[key] ~= nil then
@@ -282,8 +285,11 @@ function CooldownDone:UNIT_AURA(updateInfo)
             local aura = C_UnitAuras.GetAuraDataByAuraInstanceID("player", updatedAuraInstanceID)
             if aura then
                 key = string.format("CooldownDone.aura.%s.name", aura.spellId)
-                if CooldownDoneCharDB and CooldownDoneCharDB[key] ~= nil and not self.trackingAuras[updatedAuraInstanceID] then
-                    self.trackingAuras[updatedAuraInstanceID] = aura
+                if not self.trackingAuras[updatedAuraInstanceID] then
+                    self.trackingAuras[updatedAuraInstanceID] = {
+                        spellId = aura.spellId,
+                        name = aura.name,
+                    }
                 end
             end
         end
