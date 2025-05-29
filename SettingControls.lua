@@ -105,7 +105,7 @@ function CDDSettingsEditboxAndButtonBuildFunction(addOnName, category, layout, d
     return setting, initializer
 end
 
-LibBlzSettings.RegisterControl("EDITBOX_AND_BUTTON", function (addOnName, category, layout, dataTbl, database)
+LibBlzSettings.RegisterControl("CDD_EDITBOX_AND_BUTTON", function (addOnName, category, layout, dataTbl, database)
     return CDDSettingsEditboxAndButtonBuildFunction(addOnName, category, layout, dataTbl, database)
 end, nil, nil)
 
@@ -118,7 +118,7 @@ function CDDSettingsListSectionLabelMixin:Init(initializer)
     self:SetHeight(self.Title:GetStringHeight() + 10)
 end
 
-LibBlzSettings.RegisterControl("LABEL", function (addOnName, category, layout, dataTbl, database)
+LibBlzSettings.RegisterControl("CDD_LABEL", function (addOnName, category, layout, dataTbl, database)
     local initializer = Settings.CreateSettingInitializer("CDDSettingsListSectionLabelTemplate", dataTbl)
 
     if dataTbl.canSearch or dataTbl.canSearch == nil then

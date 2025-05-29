@@ -46,7 +46,7 @@ function CooldownDone:addAura(control)
     }
     local name = self.auras[auraID].name .. "(" .. tostring(self.auras[auraID].id) .. ")" .. "|T" .. self.auras[auraID].texture .. ":14:14:1:0|t"
     local dataTbl = {
-        controlType = "EDITBOX_AND_BUTTON",
+        controlType = "CDD_EDITBOX_AND_BUTTON",
         settingType = SETTING_TYPE.ADDON_VARIABLE,
         name = name,
         key = key,
@@ -104,7 +104,7 @@ function CooldownDone:addAddedAura(control)
     }
     local name = self.addedAuras[auraID].name .. "(" .. tostring(self.addedAuras[auraID].id) .. ")" .. "|T" .. self.addedAuras[auraID].texture .. ":14:14:1:0|t"
     local dataTbl = {
-        controlType = "EDITBOX_AND_BUTTON",
+        controlType = "CDD_EDITBOX_AND_BUTTON",
         settingType = SETTING_TYPE.ADDON_VARIABLE,
         name = name,
         key = key,
@@ -288,7 +288,7 @@ function CooldownDone:prepareSettings()
                 database = CooldownDoneCharDB,
                 settings = {
                     {
-                        controlType = "LABEL",
+                        controlType = "CDD_LABEL",
                         name = L["AbilityListTip"],
                     },
                 },
@@ -298,7 +298,7 @@ function CooldownDone:prepareSettings()
                 database = CooldownDoneCharDB,
                 settings = {
                     {
-                        controlType = "LABEL",
+                        controlType = "CDD_LABEL",
                         name = L["BuffListTip"],
                     },
                 },
@@ -365,7 +365,7 @@ function CooldownDone:prepareSettings()
         name = CONTROL_AURA_EXPIRED,
     })
     table.insert(settings.subCategorys[2].settings, {
-        controlType = "EDITBOX_AND_BUTTON",
+        controlType = "CDD_EDITBOX_AND_BUTTON",
         name = L["AddBuff"],
         tooltip = L["AddBuffTooltip"],
         button = {
@@ -379,7 +379,7 @@ function CooldownDone:prepareSettings()
         local keyEditbox = string.format("CooldownDone.aura.%s.name", aura.id)
         local name = aura.name .. "(" .. tostring(aura.id) .. ")" .. "|T" .. aura.texture .. ":14:14:1:0|t"
         table.insert(settings.subCategorys[2].settings, {
-            controlType = "EDITBOX_AND_BUTTON",
+            controlType = "CDD_EDITBOX_AND_BUTTON",
             settingType = SETTING_TYPE.ADDON_VARIABLE,
             name = name,
             key = keyEditbox,
@@ -398,7 +398,7 @@ function CooldownDone:prepareSettings()
         name = CONTROL_AURA_GAINED,
     })
     table.insert(settings.subCategorys[2].settings, {
-        controlType = "EDITBOX_AND_BUTTON",
+        controlType = "CDD_EDITBOX_AND_BUTTON",
         name = L["AddBuff"],
         tooltip = L["AddBuffTooltip"],
         button = {
@@ -412,7 +412,7 @@ function CooldownDone:prepareSettings()
         local keyEditbox = string.format("CooldownDone.addedaura.%s.name", aura.id)
         local name = aura.name .. "(" .. tostring(aura.id) .. ")" .. "|T" .. aura.texture .. ":14:14:1:0|t"
         table.insert(settings.subCategorys[2].settings, {
-            controlType = "EDITBOX_AND_BUTTON",
+            controlType = "CDD_EDITBOX_AND_BUTTON",
             settingType = SETTING_TYPE.ADDON_VARIABLE,
             name = name,
             key = keyEditbox,

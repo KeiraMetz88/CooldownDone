@@ -2,6 +2,5 @@
 ..\FrameXML\UI.xsd">
     <Script file="LibStub\LibStub.lua"/>
     <Include file="LibBlzSettings-1.0\LibBlzSettings-1.0.xml"/>
-    <Include file="LibBlzSettings-1.0\ExtraControls.lua"/>
 </Ui>
 

@@ -8,6 +8,11 @@ CooldownDone.cooldownFrames = {}
 CooldownDone.Locale = {}
 local L = CooldownDone.Locale
 
+local GetTime, PlaySoundFile = GetTime, PlaySoundFile
+local string_sub, tonumber = string.sub, tonumber
+local GetItemCooldown, SpeakText, EnumVoiceTtsDestinationLocalPlayback = C_Item.GetItemCooldown, C_VoiceChat.SpeakText, Enum.VoiceTtsDestination.LocalPlayback
+local GetSpellCharges, GetSpellName, GetSpellCooldown = C_Spell.GetSpellCharges, C_Spell.GetSpellName, C_Spell.GetSpellCooldown
+
 local function prepareDB()
     CooldownDoneDB = (type(CooldownDoneDB) == "table" and CooldownDoneDB) or {}
     CooldownDoneCharDB = (type(CooldownDoneCharDB) == "table" and CooldownDoneCharDB) or {}
@@ -38,7 +43,7 @@ function CooldownDone:getPlayerSpellBookSpells()
                 if spellID and spellID > 0 and not excludedSpells[spellID] and not self.spellBookSpells[spellID] then
                     self.spellBookSpells[spellID] = {
                         id = spellID,
-                        name = C_Spell.GetSpellName(spellID) or L["UnknownSpell"],
+                        name = GetSpellName(spellID) or L["UnknownSpell"],
                         texture = C_Spell.GetSpellTexture(spellID)
                     }
                 end
@@ -59,7 +64,7 @@ function CooldownDone:getAuras()
             if not self.auras[auraID] then
                 self.auras[auraID] = {
                     id = auraID,
-                    name = C_Spell.GetSpellName(auraID) or L["UnknownAura"],
+                    name = GetSpellName(auraID) or L["UnknownAura"],
                     texture = C_Spell.GetSpellTexture(auraID)
                 }
             end
@@ -70,7 +75,7 @@ function CooldownDone:getAuras()
             if not self.addedAuras[auraID] then
                 self.addedAuras[auraID] = {
                     id = auraID,
-                    name = C_Spell.GetSpellName(auraID) or L["UnknownAura"],
+                    name = GetSpellName(auraID) or L["UnknownAura"],
                     texture = C_Spell.GetSpellTexture(auraID)
                 }
             end
@@ -101,7 +106,7 @@ function CooldownDone:getEquippedItemSpells(prepareSettings)
         item:ContinueOnItemLoad(function()
             local spellName, spellID = C_Item.GetItemSpell(itemID.itemID)
             if spellID and spellName and not (itemID.from == "container" and not C_Item.IsEquippableItem(itemID.itemID)) and not self.equippedItemSpells[spellID] then
-                local sName = C_Spell.GetSpellName(spellID) or spellName
+                local sName = GetSpellName(spellID) or spellName
                 local iName = item:GetItemName()  or sName
                 self.equippedItemSpells[spellID] = {
                     id = spellID,
@@ -129,6 +134,19 @@ end
 function CooldownDone:speakTTS(text, typeStr)
     if not text then return end
     if not CooldownDoneDB or not CooldownDoneDB["CooldownDone.enable"] then return end
+    if tonumber(text) then
+        local willPlay, _ = PlaySoundFile(tonumber(text), "Master")
+        if not willPlay then
+            print("|cffff0000CDD(" .. GetTime() .. "): " .. L["ERR_PlaySoundFile"] .. "|r")
+        end
+        return
+    elseif string_sub(t, 1, 10) == "Interface\\" then
+        local willPlay, _ = PlaySoundFile(text, "Master")
+        if not willPlay then
+            print("|cffff0000CDD(" .. GetTime() .. "): " .. L["ERR_PlaySoundFile"] .. "|r")
+        end
+        return
+    end
     local ttsVoiceID = CooldownDoneDB and CooldownDoneDB["CooldownDone.ttsVoiceID"] or 0
     local ttsRate = CooldownDoneDB and CooldownDoneDB["CooldownDone.ttsRate"] or 0
     local ttsVolume = CooldownDoneDB and CooldownDoneDB["CooldownDone.ttsVolume"] or 100
@@ -142,7 +160,7 @@ function CooldownDone:speakTTS(text, typeStr)
         textAppend = ""
     end
     self:debug("speakTTS: " .. text .. textAppend)
-    C_VoiceChat.SpeakText(ttsVoiceID, textPrepend .. " " .. text .. " " .. textAppend, Enum.VoiceTtsDestination.LocalPlayback, ttsRate, ttsVolume)
+    SpeakText(ttsVoiceID, textPrepend .. " " .. text .. " " .. textAppend, EnumVoiceTtsDestinationLocalPlayback, ttsRate, ttsVolume)
 end
 
 function CooldownDone:UNIT_SPELLCAST_SUCCEEDED(spellID, immediately)
@@ -158,7 +176,7 @@ function CooldownDone:UNIT_SPELLCAST_SUCCEEDED(spellID, immediately)
         for _, spell in pairs(self.equippedItemSpells) do
             if tonumber(spellID) == tonumber(spell.id) then
                 isEquippedItemSpell = true
-                startTime, duration = C_Item.GetItemCooldown(spell.itemID)
+                startTime, duration = GetItemCooldown(spell.itemID)
                 isEnabled = true
                 modRate = 1
                 name = spell.itemName
@@ -167,11 +185,11 @@ function CooldownDone:UNIT_SPELLCAST_SUCCEEDED(spellID, immediately)
         end
         if not isEquippedItemSpell then
             -- If spell charge-based and has charges available, do not track cd
-            local chargeInfo = C_Spell.GetSpellCharges(spellID)
+            local chargeInfo = GetSpellCharges(spellID)
             if chargeInfo then
                 if chargeInfo.currentCharges == chargeInfo.maxCharges or chargeInfo.currentCharges > 0 then
                     if self.cooldownFrames[spellID] and self.cooldownFrames[spellID]:GetScript("OnCooldownDone") then
-                        name = C_Spell.GetSpellName(spellID) or L["UnknownSpell"]
+                        name = GetSpellName(spellID) or L["UnknownSpell"]
                         local keyName = string.format("CooldownDone.spell.%s.name", spellID)
                         if CooldownDoneCharDB and CooldownDoneCharDB[keyName] and CooldownDoneCharDB[keyName] ~= "" then
                             name = CooldownDoneCharDB[keyName]
@@ -182,9 +200,9 @@ function CooldownDone:UNIT_SPELLCAST_SUCCEEDED(spellID, immediately)
                     return
                 end
             end
-            local spellCooldownInfo = C_Spell.GetSpellCooldown(spellID) or {startTime = 0, duration = 0, isEnabled = false, modRate = 0}
+            local spellCooldownInfo = GetSpellCooldown(spellID) or {startTime = 0, duration = 0, isEnabled = false, modRate = 0}
             startTime, duration, isEnabled, modRate = spellCooldownInfo.startTime, spellCooldownInfo.duration, spellCooldownInfo.isEnabled, spellCooldownInfo.modRate
-            name = C_Spell.GetSpellName(spellID) or L["UnknownSpell"]
+            name = GetSpellName(spellID) or L["UnknownSpell"]
         end
         local keyName = string.format("CooldownDone.spell.%s.name", spellID)
         if CooldownDoneCharDB and CooldownDoneCharDB[keyName] and CooldownDoneCharDB[keyName] ~= "" then
