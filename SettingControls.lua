@@ -115,11 +115,22 @@ function CDDSettingsListSectionLabelMixin:Init(initializer)
     local data = initializer:GetData();
     self.Title:SetText(data.name);
     self.Title:SetWidth(self:GetWidth() - 7)
-    self:SetHeight(self.Title:GetStringHeight() + 10)
 end
 
 LibBlzSettings.RegisterControl("CDD_LABEL", function (addOnName, category, layout, dataTbl, database)
     local initializer = Settings.CreateSettingInitializer("CDDSettingsListSectionLabelTemplate", dataTbl)
+
+    if dataTbl.canSearch or dataTbl.canSearch == nil then
+        initializer:AddSearchTags(dataTbl.name)
+    end
+
+    layout:AddInitializer(initializer)
+
+    return _, initializer
+end, nil, nil)
+
+LibBlzSettings.RegisterControl("CDD_LABEL3", function (addOnName, category, layout, dataTbl, database)
+    local initializer = Settings.CreateSettingInitializer("CDDSettingsListSectionLabel3Template", dataTbl)
 
     if dataTbl.canSearch or dataTbl.canSearch == nil then
         initializer:AddSearchTags(dataTbl.name)

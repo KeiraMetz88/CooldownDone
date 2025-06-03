@@ -24,11 +24,12 @@ end
 
 function CooldownDone:addAura(control)
     local auraID = tonumber(control.Editbox:GetText())
-    if not auraID or auraID <= 0 then
+    if not auraID then
         print("|cffff0000" .. L["PleaseEnterID"] .. "|r")
         return
     end
-    local auraName = C_Spell.GetSpellName(auraID)
+    local showAuraID = self.specialSpellIdGroups[auraID] and self.specialSpellIdGroups[auraID][1] or auraID
+    local auraName = C_Spell.GetSpellName(showAuraID)
     if not auraName then
         print("|cffff0000" .. L["IDNotFound"] .. "|r")
         return
@@ -42,7 +43,7 @@ function CooldownDone:addAura(control)
     self.auras[auraID] = {
         id = auraID,
         name = auraName,
-        texture = C_Spell.GetSpellTexture(auraID)
+        texture = C_Spell.GetSpellTexture(showAuraID)
     }
     local name = self.auras[auraID].name .. "(" .. tostring(self.auras[auraID].id) .. ")" .. "|T" .. self.auras[auraID].texture .. ":14:14:1:0|t"
     local dataTbl = {
@@ -82,11 +83,12 @@ end
 
 function CooldownDone:addAddedAura(control)
     local auraID = tonumber(control.Editbox:GetText())
-    if not auraID or auraID <= 0 then
+    if not auraID then
         print("|cffff0000" .. L["PleaseEnterID"] .. "|r")
         return
     end
-    local auraName = C_Spell.GetSpellName(auraID)
+    local showAuraID = self.specialSpellIdGroups[auraID] and self.specialSpellIdGroups[auraID][1] or auraID
+    local auraName = C_Spell.GetSpellName(showAuraID)
     if not auraName then
         print("|cffff0000" .. L["IDNotFound"] .. "|r")
         return
@@ -100,7 +102,7 @@ function CooldownDone:addAddedAura(control)
     self.addedAuras[auraID] = {
         id = auraID,
         name = auraName,
-        texture = C_Spell.GetSpellTexture(auraID)
+        texture = C_Spell.GetSpellTexture(showAuraID)
     }
     local name = self.addedAuras[auraID].name .. "(" .. tostring(self.addedAuras[auraID].id) .. ")" .. "|T" .. self.addedAuras[auraID].texture .. ":14:14:1:0|t"
     local dataTbl = {
@@ -131,9 +133,9 @@ end
 function CooldownDone:removeAura(control)
     local initializer = control:GetElementData()
     local key = initializer.data.key
-    local auraID = key:match("CooldownDone.aura.([%d]+).name")
+    local auraID = key:match("CooldownDone.aura.([-]?[%d]+).name")
     auraID = tonumber(auraID)
-    if not auraID or auraID <= 0 then
+    if not auraID then
         print("|cffff0000" .. ERRORS .. "|r")
         return
     end
@@ -159,9 +161,9 @@ end
 function CooldownDone:removeAddedAura(control)
     local initializer = control:GetElementData()
     local key = initializer.data.key
-    local auraID = key:match("CooldownDone.addedaura.([%d]+).name")
+    local auraID = key:match("CooldownDone.addedaura.([-]?[%d]+).name")
     auraID = tonumber(auraID)
-    if not auraID or auraID <= 0 then
+    if not auraID then
         print("|cffff0000" .. ERRORS .. "|r")
         return
     end
@@ -300,6 +302,10 @@ function CooldownDone:prepareSettings()
                     {
                         controlType = "CDD_LABEL",
                         name = L["BuffListTip"],
+                    },
+                    {
+                        controlType = "CDD_LABEL3",
+                        name = L["BuffListTip2"],
                     },
                 },
             }

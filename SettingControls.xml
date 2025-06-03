@@ -35,4 +35,17 @@
             </Layer>
         </Layers>
     </Frame>
+
+    <Frame name="CDDSettingsListSectionLabel3Template" mixin="CDDSettingsListSectionLabelMixin" virtual="true">
+        <Size x="280" y="60"/>
+        <Layers>
+            <Layer level="OVERLAY">
+                <FontString parentKey="Title" inherits="GameFontHighlight" justifyH="LEFT" justifyV="TOP">
+                    <Anchors>
+                        <Anchor point="LEFT" x="7" />
+                    </Anchors>
+                </FontString>
+            </Layer>
+        </Layers>
+    </Frame>
 </Ui>

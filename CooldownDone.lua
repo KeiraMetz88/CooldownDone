@@ -6,6 +6,24 @@ CooldownDone.auras = {}
 CooldownDone.addedAuras = {}
 CooldownDone.cooldownFrames = {}
 CooldownDone.Locale = {}
+CooldownDone.specialSpellIdGroups = {
+    [-1] = {
+        80353, -- Time Warp
+        2825, -- Bloodlust
+        32182, -- Heroism
+        264667, -- Primal Rage
+        466904,
+        390386, -- Fury of the Aspects
+        444257,
+    },
+    [-2] = {
+        80354, -- Temporal Displacement
+        57724, -- Sated
+        57723, -- Exhaustion
+        264689,
+        390435,
+    },
+}
 local L = CooldownDone.Locale
 
 local GetTime, PlaySoundFile = GetTime, PlaySoundFile
@@ -25,13 +43,6 @@ end
 
 function CooldownDone:getPlayerSpellBookSpells()
     table.wipe(self.spellBookSpells)
-    local excludedSpells = {
-        [6603] = true,
-        [382499] = true,
-        [125439] = true,
-        [83958] = true,
-        [382501] = true,
-    }
     local numSkillLines = C_SpellBook.GetNumSpellBookSkillLines()
     for i = 1, numSkillLines do
         local skillLineInfo = C_SpellBook.GetSpellBookSkillLineInfo(i)
@@ -40,7 +51,7 @@ function CooldownDone:getPlayerSpellBookSpells()
             local info = C_SpellBook.GetSpellBookItemInfo(j, Enum.SpellBookSpellBank.Player)
             if info and not info.isPassive and not info.isOffSpec and info.itemType == Enum.SpellBookItemType.Spell and info.name then
                 local spellID = info.spellID or info.actionID
-                if spellID and spellID > 0 and not excludedSpells[spellID] and not self.spellBookSpells[spellID] then
+                if spellID and spellID > 0 and not self.spellBookSpells[spellID] then
                     self.spellBookSpells[spellID] = {
                         id = spellID,
                         name = GetSpellName(spellID) or L["UnknownSpell"],
@@ -56,27 +67,27 @@ end
 function CooldownDone:getAuras()
     table.wipe(self.auras)
     table.wipe(self.addedAuras)
-    local auraID
+    local auraID, showAuraID
     for k, v in pairs(CooldownDoneCharDB) do
-        auraID = k:match("CooldownDone.aura.([%d]+).name")
-        if auraID and tonumber(auraID) > 0 then
-            auraID = tonumber(auraID)
+        auraID = tonumber(k:match("CooldownDone.aura.([-]?[%d]+).name"))
+        if auraID then
             if not self.auras[auraID] then
+                showAuraID = self.specialSpellIdGroups[auraID] and self.specialSpellIdGroups[auraID][1] or auraID
                 self.auras[auraID] = {
                     id = auraID,
-                    name = GetSpellName(auraID) or L["UnknownAura"],
-                    texture = C_Spell.GetSpellTexture(auraID)
+                    name = GetSpellName(showAuraID) or L["UnknownAura"],
+                    texture = C_Spell.GetSpellTexture(showAuraID)
                 }
             end
         end
-        auraID = k:match("CooldownDone.addedaura.([%d]+).name")
-        if auraID and tonumber(auraID) > 0 then
-            auraID = tonumber(auraID)
+        auraID = tonumber(k:match("CooldownDone.addedaura.([-]?[%d]+).name"))
+        if auraID then
             if not self.addedAuras[auraID] then
+                showAuraID = self.specialSpellIdGroups[auraID] and self.specialSpellIdGroups[auraID][1] or auraID
                 self.addedAuras[auraID] = {
                     id = auraID,
-                    name = GetSpellName(auraID) or L["UnknownAura"],
-                    texture = C_Spell.GetSpellTexture(auraID)
+                    name = GetSpellName(showAuraID) or L["UnknownAura"],
+                    texture = C_Spell.GetSpellTexture(showAuraID)
                 }
             end
         end
@@ -260,13 +271,21 @@ function CooldownDone:SPELL_UPDATE_COOLDOWN()
     end
 end
 
+function CooldownDone:getSpellIdInSpecialSpellIdGroupsID(spellId)
+    for k, v in pairs(self.specialSpellIdGroups) do
+        if tContains(v, spellId) then
+            return k
+        end
+    end
+    return nil
+end
+
 CooldownDone.trackingAuras = {}
 function CooldownDone:UNIT_AURA(updateInfo)
     if not CooldownDoneDB or not CooldownDoneDB["CooldownDone.enable"] then return end
-    local key
+    local key, specialSpellIdGroupId
     if updateInfo.addedAuras ~= nil then
         for _, addedAura in ipairs(updateInfo.addedAuras) do
-            key = string.format("CooldownDone.aura.%s.name", addedAura.spellId)
             if not self.trackingAuras[addedAura.auraInstanceID] then
                 self.trackingAuras[addedAura.auraInstanceID] = {
                     spellId = addedAura.spellId,
@@ -277,6 +296,15 @@ function CooldownDone:UNIT_AURA(updateInfo)
             if CooldownDoneCharDB and CooldownDoneCharDB[key] ~= nil then
                 local name = CooldownDoneCharDB[key] ~= "" and CooldownDoneCharDB[key] or addedAura.name
                 self:speakTTS(name, "added")
+            else
+                specialSpellIdGroupId = self:getSpellIdInSpecialSpellIdGroupsID(addedAura.spellId)
+                if specialSpellIdGroupId then
+                    key = string.format("CooldownDone.addedaura.%s.name", specialSpellIdGroupId)
+                    if CooldownDoneCharDB and CooldownDoneCharDB[key] ~= nil then
+                        local name = CooldownDoneCharDB[key] ~= "" and CooldownDoneCharDB[key] or addedAura.name
+                        self:speakTTS(name, "added")
+                    end
+                end
             end
         end
     end
@@ -284,7 +312,6 @@ function CooldownDone:UNIT_AURA(updateInfo)
         for _, updatedAuraInstanceID in ipairs(updateInfo.updatedAuraInstanceIDs) do
             local aura = C_UnitAuras.GetAuraDataByAuraInstanceID("player", updatedAuraInstanceID)
             if aura then
-                key = string.format("CooldownDone.aura.%s.name", aura.spellId)
                 if not self.trackingAuras[updatedAuraInstanceID] then
                     self.trackingAuras[updatedAuraInstanceID] = {
                         spellId = aura.spellId,
@@ -301,6 +328,15 @@ function CooldownDone:UNIT_AURA(updateInfo)
                 if CooldownDoneCharDB and CooldownDoneCharDB[key] ~= nil then
                     local name = CooldownDoneCharDB[key] ~= "" and CooldownDoneCharDB[key] or self.trackingAuras[removedAuraInstanceID].name
                     self:speakTTS(name, "over")
+                else
+                    specialSpellIdGroupId = self:getSpellIdInSpecialSpellIdGroupsID(self.trackingAuras[removedAuraInstanceID].spellId)
+                    if specialSpellIdGroupId then
+                        key = string.format("CooldownDone.aura.%s.name", specialSpellIdGroupId)
+                        if CooldownDoneCharDB and CooldownDoneCharDB[key] ~= nil then
+                            local name = CooldownDoneCharDB[key] ~= "" and CooldownDoneCharDB[key] or self.trackingAuras[removedAuraInstanceID].name
+                            self:speakTTS(name, "over")
+                        end
+                    end
                 end
                 self.trackingAuras[removedAuraInstanceID] = nil
             end
