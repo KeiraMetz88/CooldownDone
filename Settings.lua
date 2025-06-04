@@ -22,6 +22,14 @@ local function EnumerateTaintedKeysTable(tableToIterate)
     return IteratorFunction, enumerateTable, initialIteratorKey;
 end
 
+local function formatNameIdTexture(name, id, texture)
+    local ret = name .. "(" .. tostring(id) .. ")"
+    if texture and texture ~= "" then
+        ret = ret .. "|T" .. texture .. ":14:14:1:0|t"
+    end
+    return ret
+end
+
 function CooldownDone:addAura(control)
     local auraID = tonumber(control.Editbox:GetText())
     if not auraID then
@@ -45,7 +53,7 @@ function CooldownDone:addAura(control)
         name = auraName,
         texture = C_Spell.GetSpellTexture(showAuraID)
     }
-    local name = self.auras[auraID].name .. "(" .. tostring(self.auras[auraID].id) .. ")" .. "|T" .. self.auras[auraID].texture .. ":14:14:1:0|t"
+    local name = formatNameIdTexture(self.auras[auraID].name, self.auras[auraID].id, self.auras[auraID].texture)
     local dataTbl = {
         controlType = "CDD_EDITBOX_AND_BUTTON",
         settingType = SETTING_TYPE.ADDON_VARIABLE,
@@ -104,7 +112,7 @@ function CooldownDone:addAddedAura(control)
         name = auraName,
         texture = C_Spell.GetSpellTexture(showAuraID)
     }
-    local name = self.addedAuras[auraID].name .. "(" .. tostring(self.addedAuras[auraID].id) .. ")" .. "|T" .. self.addedAuras[auraID].texture .. ":14:14:1:0|t"
+    local name = formatNameIdTexture(self.addedAuras[auraID].name, self.addedAuras[auraID].id, self.addedAuras[auraID].texture)
     local dataTbl = {
         controlType = "CDD_EDITBOX_AND_BUTTON",
         settingType = SETTING_TYPE.ADDON_VARIABLE,
@@ -319,7 +327,7 @@ function CooldownDone:prepareSettings()
     for _, spell in pairs(self.spellBookSpells) do
         local keyCheckbox = string.format("CooldownDone.spell.%s.enable", spell.id)
         local keyEditbox = string.format("CooldownDone.spell.%s.name", spell.id)
-        local name = spell.name .. "(" .. tostring(spell.id) .. ")" .. "|T" .. spell.texture .. ":14:14:1:0|t"
+        local name = formatNameIdTexture(spell.name, spell.id, spell.texture)
         table.insert(settings.subCategorys[1].settings, {
             controlType = CONTROL_TYPE.CHECKBOX_AND_EDITBOX,
             settingType = SETTING_TYPE.ADDON_VARIABLE,
@@ -345,8 +353,8 @@ function CooldownDone:prepareSettings()
     for _, spell in pairs(self.equippedItemSpells) do
         local keyCheckbox = string.format("CooldownDone.spell.%s.enable", spell.id)
         local keyEditbox = string.format("CooldownDone.spell.%s.name", spell.id)
-        local itemName = spell.itemName .."(" .. tostring(spell.itemID)..")" .. "|T" .. spell.itemTexture .. ":14:14:1:0|t"
-        local spellName = spell.name .."(" .. tostring(spell.id)..")" .. "|T" .. spell.texture .. ":14:14:1:0|t"
+        local itemName = formatNameIdTexture(spell.itemName, spell.itemID, spell.itemTexture)
+        local spellName = formatNameIdTexture(spell.name, spell.id, spell.texture)
         table.insert(settings.subCategorys[1].settings, {
             controlType = CONTROL_TYPE.CHECKBOX_AND_EDITBOX,
             settingType = SETTING_TYPE.ADDON_VARIABLE,
@@ -383,7 +391,7 @@ function CooldownDone:prepareSettings()
     })
     for _, aura in pairs(self.auras) do
         local keyEditbox = string.format("CooldownDone.aura.%s.name", aura.id)
-        local name = aura.name .. "(" .. tostring(aura.id) .. ")" .. "|T" .. aura.texture .. ":14:14:1:0|t"
+        local name = formatNameIdTexture(aura.name, aura.id, aura.texture)
         table.insert(settings.subCategorys[2].settings, {
             controlType = "CDD_EDITBOX_AND_BUTTON",
             settingType = SETTING_TYPE.ADDON_VARIABLE,
@@ -416,7 +424,7 @@ function CooldownDone:prepareSettings()
     })
     for _, aura in pairs(self.addedAuras) do
         local keyEditbox = string.format("CooldownDone.addedaura.%s.name", aura.id)
-        local name = aura.name .. "(" .. tostring(aura.id) .. ")" .. "|T" .. aura.texture .. ":14:14:1:0|t"
+        local name = formatNameIdTexture(aura.name, aura.id, aura.texture)
         table.insert(settings.subCategorys[2].settings, {
             controlType = "CDD_EDITBOX_AND_BUTTON",
             settingType = SETTING_TYPE.ADDON_VARIABLE,
