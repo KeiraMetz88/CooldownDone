@@ -246,7 +246,7 @@ function CooldownDone:UNIT_SPELLCAST_SUCCEEDED(spellID, immediately)
         setCooldown(spellID)
     else
         -- C_Spell.GetSpellCooldown here now may return duration=GCD time, so we check it later
-        C_Timer.After(1.6, function()
+        C_Timer.After(0.5, function()
             setCooldown(spellID)
         end)
     end
