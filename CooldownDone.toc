@@ -1,5 +1,5 @@
 ## Interface: 110107
-## Version: 1.5.0
+## Version: 1.5.1
 
 ## Title: Cooldown Done
 ## Title-zhCN: CD 就绪

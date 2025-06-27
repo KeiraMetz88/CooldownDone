@@ -181,7 +181,7 @@ function CooldownDone:UNIT_SPELLCAST_SUCCEEDED(spellID, immediately)
 
     local function setCooldown(spellID)
         -- Check if spell is item-spell
-        local isEquippedItemSpell = false
+        local isEquippedItemSpell, isChargedSpell = false, false
         local startTime, duration, isEnabled, modRate
         local name = ""
         for _, spell in pairs(self.equippedItemSpells) do
@@ -198,6 +198,7 @@ function CooldownDone:UNIT_SPELLCAST_SUCCEEDED(spellID, immediately)
             -- If spell charge-based and has charges available, do not track cd
             local chargeInfo = GetSpellCharges(spellID)
             if chargeInfo then
+                isChargedSpell = true
                 if chargeInfo.currentCharges == chargeInfo.maxCharges or chargeInfo.currentCharges > 0 then
                     if self.cooldownFrames[spellID] and self.cooldownFrames[spellID]:GetScript("OnCooldownDone") then
                         name = GetSpellName(spellID) or L["UnknownSpell"]
@@ -222,6 +223,7 @@ function CooldownDone:UNIT_SPELLCAST_SUCCEEDED(spellID, immediately)
         if startTime and startTime > 0 and duration and duration > 0 then
             self:debug("Cooldown: spellID-" .. spellID .. ", startTime-" .. startTime .. ", duration-" .. duration .. ", isEnabled-" .. (isEnabled and "1" or "0"))
             self.cooldownFrames[spellID] = self.cooldownFrames[spellID] or CreateFrame("Cooldown", nil)
+            self.cooldownFrames[spellID].isChargedSpell = isChargedSpell
             self.cooldownFrames[spellID].CooldownDoneTTSName = name
             self.cooldownFrames[spellID].CooldownDoneTTSIsEnabled = isEnabled
             self.cooldownFrames[spellID]:SetCooldown(startTime, duration, modRate)
@@ -254,7 +256,35 @@ end
 
 -- https://warcraft.wiki.gg/wiki/SPELL_UPDATE_COOLDOWN
 -- Patch 11.1.5 (2025-04-22): Added spellID, baseSpellID arguments.
-function CooldownDone:SPELL_UPDATE_COOLDOWN()
+function CooldownDone:SPELL_UPDATE_COOLDOWN(spellID)
+    if not CooldownDoneCharDB then return end
+    if spellID then
+        local key = string.format("CooldownDone.spell.%s.enable", spellID)
+        if not CooldownDoneCharDB[key] then return end
+        CooldownDone:debug("SUC" .. spellID)
+        if self.cooldownFrames[spellID] then
+            if self.cooldownFrames[spellID]:GetScript("OnCooldownDone") then
+                self:UNIT_SPELLCAST_SUCCEEDED(spellID, true)
+            end
+        end
+        return
+    end
+    -- for k, v in pairs(CooldownDoneCharDB) do
+        -- if v then
+            -- local spellID = k:match("CooldownDone.spell.([%d]+).enable")
+            -- if spellID and tonumber(spellID) > 0 then
+                -- spellID = tonumber(spellID)
+                -- if self.cooldownFrames[spellID] then
+                    -- if self.cooldownFrames[spellID]:GetScript("OnCooldownDone") then
+                        -- self:UNIT_SPELLCAST_SUCCEEDED(spellID, true)
+                    -- end
+                -- end
+            -- end
+        -- end
+    -- end
+end
+
+function CooldownDone:SPELL_UPDATE_CHARGES()
     if not CooldownDoneCharDB then return end
     for k, v in pairs(CooldownDoneCharDB) do
         if v then
@@ -262,7 +292,7 @@ function CooldownDone:SPELL_UPDATE_COOLDOWN()
             if spellID and tonumber(spellID) > 0 then
                 spellID = tonumber(spellID)
                 if self.cooldownFrames[spellID] then
-                    if self.cooldownFrames[spellID]:GetScript("OnCooldownDone") then
+                    if self.cooldownFrames[spellID].isChargedSpell and self.cooldownFrames[spellID]:GetScript("OnCooldownDone") then
                         self:UNIT_SPELLCAST_SUCCEEDED(spellID, true)
                     end
                 end
@@ -349,6 +379,7 @@ frame:RegisterEvent("ADDON_LOADED")
 frame:RegisterEvent("PLAYER_ENTERING_WORLD")
 frame:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
 frame:RegisterEvent("SPELL_UPDATE_COOLDOWN")
+frame:RegisterEvent("SPELL_UPDATE_CHARGES")
 frame:RegisterUnitEvent("UNIT_SPELLCAST_SUCCEEDED", "player")
 frame:RegisterUnitEvent("UNIT_AURA", "player")
 frame:SetScript("OnEvent", function(self, event, ...)
@@ -378,8 +409,12 @@ frame:SetScript("OnEvent", function(self, event, ...)
             CooldownDone:UNIT_SPELLCAST_SUCCEEDED(spellID, false)
         end
     elseif event == "SPELL_UPDATE_COOLDOWN" then
-        CooldownDone:debug(event)
-        CooldownDone:SPELL_UPDATE_COOLDOWN()
+        local spellID = ...
+        --CooldownDone:debug(event)
+        CooldownDone:SPELL_UPDATE_COOLDOWN(spellID)
+    elseif event == "SPELL_UPDATE_CHARGES" then
+        --CooldownDone:debug(event)
+        CooldownDone:SPELL_UPDATE_CHARGES()
     elseif event == "UNIT_AURA" then
         local unitTarget, updateInfo = ...
         if unitTarget == "player" then
