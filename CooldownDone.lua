@@ -311,7 +311,7 @@ function CooldownDone:UNIT_AURA()
                     if specialSpellIdGroupId then
                         key = string.format("CooldownDone.addedaura.%s.name", specialSpellIdGroupId)
                         if CooldownDoneCharDB and CooldownDoneCharDB[key] ~= nil then
-                            local name = CooldownDoneCharDB[key] ~= "" and CooldownDoneCharDB[key] or self.addedAuras[auraID].name
+                            local name = CooldownDoneCharDB[key] ~= "" and CooldownDoneCharDB[key] or (C_Spell_GetSpellName(auraID) or L["UnknownSpell"])
                             self:speakTTS(name, "added")
                         end
                     end
@@ -326,7 +326,7 @@ function CooldownDone:UNIT_AURA()
                     if specialSpellIdGroupId then
                         key = string.format("CooldownDone.aura.%s.name", specialSpellIdGroupId)
                         if CooldownDoneCharDB and CooldownDoneCharDB[key] ~= nil then
-                            local name = CooldownDoneCharDB[key] ~= "" and CooldownDoneCharDB[key] or self.auras[auraID].name
+                            local name = CooldownDoneCharDB[key] ~= "" and CooldownDoneCharDB[key] or (C_Spell_GetSpellName(auraID) or L["UnknownSpell"])
                             self:speakTTS(name, "over")
                         end
                     end
