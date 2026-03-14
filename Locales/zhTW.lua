@@ -40,4 +40,4 @@ L["EquippedItemList"] = "裝備清單"
 L["AddBuff"] = "新增 BUFF"
 L["AddBuffTooltip"] = "輸入 ID 後點選按鈕"
 L["ERR_PlaySoundFile"] = "播放聲音檔案出錯"
-
+L["ERR_InCombatSettings"] = "戰鬥中，請脫戰後重試"

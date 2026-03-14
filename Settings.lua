@@ -48,11 +48,12 @@ function CooldownDone:addAura(control)
     end
     local key = string.format("CooldownDone.aura.%s.name", auraID)
     CooldownDoneCharDB[key] = ""
-    self.auras[auraID] = {
-        id = auraID,
-        name = auraName,
-        texture = C_Spell.GetSpellTexture(showAuraID)
-    }
+    -- self.auras[auraID] = {
+        -- id = auraID,
+        -- name = auraName,
+        -- texture = C_Spell.GetSpellTexture(showAuraID)
+    -- }
+    self:getAuras()
     local name = formatNameIdTexture(self.auras[auraID].name, self.auras[auraID].id, self.auras[auraID].texture)
     local dataTbl = {
         controlType = "CDD_EDITBOX_AND_BUTTON",
@@ -107,11 +108,12 @@ function CooldownDone:addAddedAura(control)
     end
     local key = string.format("CooldownDone.addedaura.%s.name", auraID)
     CooldownDoneCharDB[key] = ""
-    self.addedAuras[auraID] = {
-        id = auraID,
-        name = auraName,
-        texture = C_Spell.GetSpellTexture(showAuraID)
-    }
+    -- self.addedAuras[auraID] = {
+        -- id = auraID,
+        -- name = auraName,
+        -- texture = C_Spell.GetSpellTexture(showAuraID)
+    -- }
+    self:getAuras()
     local name = formatNameIdTexture(self.addedAuras[auraID].name, self.addedAuras[auraID].id, self.addedAuras[auraID].texture)
     local dataTbl = {
         controlType = "CDD_EDITBOX_AND_BUTTON",
@@ -149,7 +151,8 @@ function CooldownDone:removeAura(control)
     end
     local key = string.format("CooldownDone.aura.%s.name", auraID)
     CooldownDoneCharDB[key] = nil
-    self.auras[auraID] = nil
+    -- self.auras[auraID] = nil
+    self:getAuras()
     for _, subCategory in ipairs(CooldownDone.category:GetSubcategories()) do
         if subCategory:GetName() == CATEGORY_NAME_AURA then
             local layout = SettingsPanel:GetLayout(subCategory)
@@ -177,7 +180,8 @@ function CooldownDone:removeAddedAura(control)
     end
     local key = string.format("CooldownDone.addedaura.%s.name", auraID)
     CooldownDoneCharDB[key] = nil
-    self.addedAuras[auraID] = nil
+    -- self.addedAuras[auraID] = nil
+    self:getAuras()
     for _, subCategory in ipairs(CooldownDone.category:GetSubcategories()) do
         if subCategory:GetName() == CATEGORY_NAME_AURA then
             local layout = SettingsPanel:GetLayout(subCategory)
@@ -445,6 +449,10 @@ function CooldownDone:prepareSettings()
 
     _G.SLASH_COOLDOWNDONE1 = "/cdd";
     _G.SlashCmdList["COOLDOWNDONE"] = function()
+        if InCombatLockdown() then
+            print("|cffff0000" .. L["ERR_InCombatSettings"] .. "|r")
+            return
+        end
         Settings.OpenToCategory(CooldownDone.category:GetID())
     end
 end

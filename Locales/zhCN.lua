@@ -40,4 +40,5 @@ L["EquippedItemList"] = "装备列表"
 L["AddBuff"] = "添加 BUFF"
 L["AddBuffTooltip"] = "输入 ID 后点击按钮"
 L["ERR_PlaySoundFile"] = "播放声音文件出错"
+L["ERR_InCombatSettings"] = "战斗中，请脱战后重试"
 

@@ -36,4 +36,4 @@ L["EquippedItemList"] = "Equipped Items"
 L["AddBuff"] = "Add buff"
 L["AddBuffTooltip"] = "Enter ID Then click the button"
 L["ERR_PlaySoundFile"] = "Play sound file error"
-
+L["ERR_InCombatSettings"] = "You are currently in combat. Please exit combat before trying again."

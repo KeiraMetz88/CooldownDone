@@ -5,7 +5,7 @@
     This library is based on the Blizzard Settings API and is used to quickly serialize tables into Blizzard Vertical Settings Categories.
 ]]
 
-local MAJOR, MINOR = "LibBlzSettings-1.0", 110103
+local MAJOR, MINOR = "LibBlzSettings-1.0", 12000002
 
 local LibBlzSettings = LibStub:NewLibrary(MAJOR, MINOR)
 
@@ -139,7 +139,7 @@ local CONTROL_TYPE_METADATA = {
             end
         },
         buildFunction = function (addOnName, category, layout, dataTbl, database)
-            local options, varType = Utils.CreateOptions(dataTbl.options)
+            local options, varType = Utils.CreateOptions(dataTbl.options, dataTbl.isCheckboxDropdown)
             local setting = LibBlzSettings.RegisterSetting(addOnName, category, dataTbl, database, varType)
 
             local data = {
@@ -150,6 +150,10 @@ local CONTROL_TYPE_METADATA = {
             }
 
             local initializer = Settings.CreateSettingInitializer("SettingsDropdownControlTemplate", data)
+            
+            if dataTbl.isCheckboxDropdown then
+                initializer.getSelectionTextFunc = Utils.CreateSelectionTextFunction(UNIT_NAMEPLATES_STACK_NONE or "None")
+            end
 
             if dataTbl.canSearch or dataTbl.canSearch == nil then
                 initializer:AddSearchTags(dataTbl.name)
@@ -256,7 +260,7 @@ local CONTROL_TYPE_METADATA = {
             dropdown = CONTROL_TYPE.DROPDOWN
         },
         buildFunction = function (addOnName, category, layout, dataTbl, database)
-            local dropdownOptions, dropdownVarType = Utils.CreateOptions(dataTbl.dropdown.options)
+            local dropdownOptions, dropdownVarType = Utils.CreateOptions(dataTbl.dropdown.options, dataTbl.dropdown.isCheckboxDropdown)
             local checkboxSetting = LibBlzSettings.RegisterSetting(addOnName, category, dataTbl, database, Settings.VarType.Boolean)
             local dropdownSetting = LibBlzSettings.RegisterSetting(addOnName, category, dataTbl.dropdown, database, dropdownVarType, dataTbl.dropdown.name or dataTbl.name)
 
@@ -273,6 +277,10 @@ local CONTROL_TYPE_METADATA = {
                 dropDownTooltip = dataTbl.dropdown.tooltip or dataTbl.tooltip,
             }
             local initializer = Settings.CreateSettingInitializer("SettingsCheckboxDropdownControlTemplate", data)
+
+            if dataTbl.dropdown.isCheckboxDropdown then
+                initializer.getSelectionTextFunc = Utils.CreateSelectionTextFunction(UNIT_NAMEPLATES_STACK_NONE or "None")
+            end
 
             if dataTbl.canSearch or dataTbl.canSearch == nil then
                 initializer:AddSearchTags(dataTbl.name)
@@ -438,32 +446,6 @@ local CONTROL_TYPE_METADATA = {
             initializer.OnHide = OnHide
 
             return setting, initializer
-        end,
-
-        onControlInit = function (frame, dataTbl)
-            --[[
-            local source = {}
-            --
-            frame.Control.Dropdown:RegisterCallback(DropdownButtonMixin.Event.OnUpdate, function (...)
-                local lib = LibStub("LibSharedMedia-3.0")
-
-                if dataTbl.mediaType == lib.MediaType.FONT then
-                    source.font, source.fontSize = frame.Control.Dropdown.Text:GetFont()
-                    frame.Control.Dropdown.Text:SetFont(frame:GetSetting():GetValue(), source.fontSize)
-                end
-                
-            end)
-
-            frame.Control.Dropdown:RegisterCallback(DropdownButtonMixin.Event.OnMenuOpen, function (...)
-                if frame.Control.Dropdown.menu then
-                end
-            end)
-            frame.Release = function()
-                frame.Control.Dropdown.Text:SetFont(source.font, source.fontSize)
-                frame.Release = SettingsDropdownControlMixin.Release
-                SettingsDropdownControlMixin.Release(frame)
-            end
-            ]]
         end
     }
 }
@@ -500,7 +482,7 @@ function LibBlzSettings.RegisterSetting(addOnName, category, dataTbl, database, 
     return setting
 end
 
-function Utils.CreateOptions(options)
+function Utils.CreateOptions(options, isCheckboxDropdown)
     local varType = Settings.VarType.Number
     local entrys = {}
     if options then
@@ -509,13 +491,17 @@ function Utils.CreateOptions(options)
                 tinsert(entrys, {i, option})
             elseif type(option) == "table" then
                 if #option == 0 and option.name then
-                    tinsert(entrys, {option.value or i, option.name, option.tooltip})
-                    if option.value and type(option.value) ~= "number" then
-                        varType = Settings.VarType.String
+                    if isCheckboxDropdown then
+                        tinsert(entrys, {i, option.name, option.tooltip})
+                    else
+                        tinsert(entrys, {option.value or i, option.name, option.tooltip})
+                        if option.value and type(option.value) ~= "number" then
+                            varType = Settings.VarType.String
+                        end
                     end
                 elseif #option == 1 then
                     tinsert(entrys, {i, option[1]})
-                elseif #option == 2 then
+                elseif #option == 2 or (isCheckboxDropdown and #option >= 2) then
                     tinsert(entrys, {i, option[1], option[2]})
                 elseif #option == 3 then
                     tinsert(entrys, {option[1], option[2], option[3]})
@@ -532,9 +518,13 @@ function Utils.CreateOptions(options)
 
         for _, entry in ipairs(entrys) do
             if varType == Settings.VarType.String then
-                container:Add(tostring(entry[1]), entry[2], entry[3])
+                container:Add(tostring(entry[1]), entry[2], entry[3])   
             else
-                container:Add(entry[1], entry[2], entry[3])
+                if isCheckboxDropdown then
+                    container:AddCheckbox(entry[1], entry[2], entry[3])
+                else
+                    container:Add(entry[1], entry[2], entry[3])
+                end
             end
         end
 
@@ -592,13 +582,22 @@ function Utils.CheckControl(dataTbl, controlType)
     return true
 end
 
+ function Utils.CreateSelectionTextFunction(text)
+	return function(selections)
+		if #selections == 0 then
+			return text;
+		end
+
+		-- Returning nil to use default behavior in DropdownSelectionTextMixin:UpdateToMenuSelections.
+		return nil;
+	end
+end
+
 local function SetupControl(addOnName, category, layout, dataTbl, database)
     if CONTROL_TYPE_METADATA[dataTbl.controlType] and Utils.CheckControl(dataTbl) then
-        --[[
-        if type(dataTbl.isVisible) == "function" and not dataTbl.isVisible() then
+        if type(dataTbl.require) == "function" and not dataTbl.require() then
             return
         end
-        ]]
         if type(CONTROL_TYPE_METADATA[dataTbl.controlType].buildFunction) == "function" then
             -- 指定额外的表 (而不是分类使用的表) 来储存数据
             if type(dataTbl.database) == "table" then
@@ -619,6 +618,15 @@ local function SetupControl(addOnName, category, layout, dataTbl, database)
                 function initializer:IsNewTagShown()
                     return true
                 end
+            end
+
+            if dataTbl.isVisible then
+                initializer.ShouldShow = dataTbl.isVisible
+            end
+
+            if dataTbl.canSearch == false then
+                -- 忽略搜索
+                initializer:SetSearchIgnoredInLayout(layout)
             end
 
             if CONTROL_TYPE_METADATA[dataTbl.controlType].setting then
@@ -676,27 +684,6 @@ local function BuildCategory(addOnName, dataTbl, database, parentCategory)
 
     -- 仅纵向布局才继续初始化
     if layout:IsVerticalLayout() then
-        layout.displayInitializers = {}
-
-        -- 每次重新判断是否显示
-        function layout:GetInitializers()
-            table.wipe(self.displayInitializers)
-            for i, initializer in ipairs(self.initializers) do
-                if initializer.LibBlzSettingsData then
-                    if not (type(initializer.LibBlzSettingsData.isVisible) == "function" and not initializer.LibBlzSettingsData.isVisible()) then
-                        tinsert(self.displayInitializers, initializer)
-                    end
-                end
-            end
-
-            return self.displayInitializers
-        end
-
-        function layout:Refresh()
-            if SettingsPanel:GetCurrentLayout() == self then
-                SettingsPanel:DisplayLayout(self)
-            end
-        end
 
         if type(database) == "table" then
             -- 提供了表类型作为数据库, 不做额外处理
@@ -739,56 +726,7 @@ end
 ---   Blizzard Function Secure Hook  ---
 ----------------------------------------
 
-hooksecurefunc(SettingsControlMixin, "Init", function (self, initializer)
-    if initializer and initializer.LibBlzSettingsData then
-        local data = initializer.LibBlzSettingsData
-        if type(CONTROL_TYPE_METADATA[data.controlType].onControlInit) == "function" then
-            CONTROL_TYPE_METADATA[data.controlType].onControlInit(self, initializer.LibBlzSettingsData)
-        end
-    end
-end)
 
-hooksecurefunc(SettingsCheckboxDropdownControlMixin, "Init", function (self, initializer)
-    if initializer and initializer.LibBlzSettingsData then
-        -- Defaults...
-        local function OnCheckboxSettingValueChanged(o, setting, value)
-            self.Checkbox:SetValue(value)
-            self:EvaluateState()
-        end
-        self.cbrHandles:SetOnValueChangedCallback(initializer.data.cbSetting:GetVariable(), OnCheckboxSettingValueChanged)
-
-        local function OnDropdownSettingValueChanged(o, setting, value)
-            local dropdownOptions = initializer.data.dropdownOptions
-            local dropdownSetting = initializer.data.dropdownSetting
-
-            local inserter = Settings.CreateDropdownOptionInserter(dropdownOptions);
-	        local initDropdownTooltip = Settings.CreateOptionsInitTooltip(dropdownSetting, initializer:GetName(), initializer:GetTooltip(), dropdownOptions);
-            Settings.InitDropdown(self.Control.Dropdown, dropdownSetting, inserter, initDropdownTooltip)
-        end
-        self.cbrHandles:SetOnValueChangedCallback(initializer.data.dropdownSetting:GetVariable(), OnDropdownSettingValueChanged);
-
-        -- 暴雪自带的下拉菜单的选项不会跟随父选项更新禁用, 覆盖方法
-        function self:EvaluateState()
-            SettingsCheckboxDropdownControlMixin.EvaluateState(self)
-            local enabled = SettingsControlMixin.IsEnabled(self)
-            self.Control:SetEnabled(enabled and initializer.data.cbSetting:GetValue())
-            self.Checkbox:SetEnabled(enabled)
-	        self:DisplayEnabled(enabled)
-        end
-        -- 用完记得还回去
-        function self:Release()
-            -- 选择框不会自动重置 防止复用时被禁用
-            self.Checkbox:SetEnabled(true)
-	        self:DisplayEnabled(true)
-
-            self.EvaluateState = SettingsCheckboxDropdownControlMixin.EvaluateState
-            self.Release = SettingsCheckboxDropdownControlMixin.Release
-            SettingsCheckboxDropdownControlMixin.Release(self)
-        end
-
-        self:EvaluateState()
-    end
-end)
 
 --[[
     STATIC
@@ -837,3 +775,5 @@ function LibBlzSettings:RegisterVerticalSettingsTable(addOnName, dataTbl, databa
         return category, layout
     end
 end
+
+
