@@ -5,7 +5,7 @@
     This library is based on the Blizzard Settings API and is used to quickly serialize tables into Blizzard Vertical Settings Categories.
 ]]
 
-local MAJOR, MINOR = "LibBlzSettings-1.0", 12000002
+local MAJOR, MINOR = "LibBlzSettings-1.0", 12000003
 
 local LibBlzSettings = LibStub:NewLibrary(MAJOR, MINOR)
 
@@ -172,7 +172,7 @@ local CONTROL_TYPE_METADATA = {
             local checkboxSetting = LibBlzSettings.RegisterSetting(addOnName, category, dataTbl, database, Settings.VarType.Boolean)
 
             local data = {
-                name = dataTbl.name,
+                name = dataTbl.name or "",
                 tooltip = dataTbl.tooltip,
                 setting = checkboxSetting,
                 buttonText = dataTbl.buttonText,
@@ -182,7 +182,9 @@ local CONTROL_TYPE_METADATA = {
             local initializer = Settings.CreateElementInitializer("SettingButtonControlTemplate", data)
 
             if dataTbl.canSearch or dataTbl.canSearch == nil then
-                initializer:AddSearchTags(dataTbl.name)
+                if dataTbl.name then
+                    initializer:AddSearchTags(dataTbl.name)
+                end
                 initializer:AddSearchTags(dataTbl.buttonText)
             end
 
@@ -450,6 +452,8 @@ local CONTROL_TYPE_METADATA = {
     }
 }
 
+local registeredCategories = {}
+
 function LibBlzSettings.RegisterSetting(addOnName, category, dataTbl, database, varType, name)
 
     local default = dataTbl.default
@@ -670,7 +674,7 @@ local function BuildCategory(addOnName, dataTbl, database, parentCategory)
             -- 纵向布局
             category, layout = Settings.RegisterVerticalLayoutSubcategory(parentCategory, dataTbl.name)
         end
-        
+        registeredCategories[addOnName.."."..dataTbl.name] = category
     else
         if dataTbl.frame then
             -- 传统布局(使用框体)
@@ -679,8 +683,10 @@ local function BuildCategory(addOnName, dataTbl, database, parentCategory)
             -- 纵向布局
             category, layout = Settings.RegisterVerticalLayoutCategory(dataTbl.name or addOnName)
         end
-        
+        registeredCategories[addOnName] = category
     end
+
+    
 
     -- 仅纵向布局才继续初始化
     if layout:IsVerticalLayout() then
@@ -776,4 +782,16 @@ function LibBlzSettings:RegisterVerticalSettingsTable(addOnName, dataTbl, databa
     end
 end
 
-
+function LibBlzSettings:OpenToCategory(addOnName, subCategoryName)
+    if subCategoryName then
+        local category = registeredCategories[addOnName.."."..subCategoryName]
+        if category then
+            Settings.OpenToCategory(category:GetID())
+        end
+    else
+        local category = registeredCategories[addOnName]
+        if category then
+            Settings.OpenToCategory(category:GetID())
+        end
+    end
+end

@@ -311,13 +311,17 @@ function CooldownDone:prepareSettings()
                 name = CATEGORY_NAME_AURA,
                 database = CooldownDoneCharDB,
                 settings = {
-                    {
+                    -- {
+                        -- controlType = "CDD_LABEL",
+                        -- name = L["BuffListTip"],
+                    -- },
+                    -- {
+                        -- controlType = "CDD_LABEL3",
+                        -- name = L["BuffListTip2"],
+                    -- },
+					{
                         controlType = "CDD_LABEL",
-                        name = L["BuffListTip"],
-                    },
-                    {
-                        controlType = "CDD_LABEL3",
-                        name = L["BuffListTip2"],
+                        name = "Due to the secret value system of 12.0, this feature temporarily removed... (WIP...)",
                     },
                 },
             }
@@ -378,72 +382,72 @@ function CooldownDone:prepareSettings()
         })
     end
 
-    table.insert(settings.subCategorys[2].settings, {
-        controlType = CONTROL_TYPE.SECTION_HEADER,
-        name = CONTROL_AURA_EXPIRED,
-    })
-    table.insert(settings.subCategorys[2].settings, {
-        controlType = "CDD_EDITBOX_AND_BUTTON",
-        name = L["AddBuff"],
-        tooltip = L["AddBuffTooltip"],
-        button = {
-            buttonText = ADD,
-            OnButtonClick = function(control)
-                self:addAura(control)
-             end,
-        },
-    })
-    for _, aura in pairs(self.auras) do
-        local keyEditbox = string.format("CooldownDone.aura.%s.name", aura.id)
-        local name = formatNameIdTexture(aura.name, aura.id, aura.texture)
-        table.insert(settings.subCategorys[2].settings, {
-            controlType = "CDD_EDITBOX_AND_BUTTON",
-            settingType = SETTING_TYPE.ADDON_VARIABLE,
-            name = name,
-            key = keyEditbox,
-            default = "",
-            editboxTooltip = L["CustomName"],
-            button = {
-                buttonText = REMOVE,
-                OnButtonClick = function(control)
-                    self:removeAura(control)
-                end,
-            },
-        })
-    end
-    table.insert(settings.subCategorys[2].settings, {
-        controlType = CONTROL_TYPE.SECTION_HEADER,
-        name = CONTROL_AURA_GAINED,
-    })
-    table.insert(settings.subCategorys[2].settings, {
-        controlType = "CDD_EDITBOX_AND_BUTTON",
-        name = L["AddBuff"],
-        tooltip = L["AddBuffTooltip"],
-        button = {
-            buttonText = ADD,
-            OnButtonClick = function(control)
-                self:addAddedAura(control)
-             end,
-        },
-    })
-    for _, aura in pairs(self.addedAuras) do
-        local keyEditbox = string.format("CooldownDone.addedaura.%s.name", aura.id)
-        local name = formatNameIdTexture(aura.name, aura.id, aura.texture)
-        table.insert(settings.subCategorys[2].settings, {
-            controlType = "CDD_EDITBOX_AND_BUTTON",
-            settingType = SETTING_TYPE.ADDON_VARIABLE,
-            name = name,
-            key = keyEditbox,
-            default = "",
-            editboxTooltip = L["CustomName"],
-            button = {
-                buttonText = REMOVE,
-                OnButtonClick = function(control)
-                    self:removeAddedAura(control)
-                end,
-            },
-        })
-    end
+    -- table.insert(settings.subCategorys[2].settings, {
+        -- controlType = CONTROL_TYPE.SECTION_HEADER,
+        -- name = CONTROL_AURA_EXPIRED,
+    -- })
+    -- table.insert(settings.subCategorys[2].settings, {
+        -- controlType = "CDD_EDITBOX_AND_BUTTON",
+        -- name = L["AddBuff"],
+        -- tooltip = L["AddBuffTooltip"],
+        -- button = {
+            -- buttonText = ADD,
+            -- OnButtonClick = function(control)
+                -- self:addAura(control)
+             -- end,
+        -- },
+    -- })
+    -- for _, aura in pairs(self.auras) do
+        -- local keyEditbox = string.format("CooldownDone.aura.%s.name", aura.id)
+        -- local name = formatNameIdTexture(aura.name, aura.id, aura.texture)
+        -- table.insert(settings.subCategorys[2].settings, {
+            -- controlType = "CDD_EDITBOX_AND_BUTTON",
+            -- settingType = SETTING_TYPE.ADDON_VARIABLE,
+            -- name = name,
+            -- key = keyEditbox,
+            -- default = "",
+            -- editboxTooltip = L["CustomName"],
+            -- button = {
+                -- buttonText = REMOVE,
+                -- OnButtonClick = function(control)
+                    -- self:removeAura(control)
+                -- end,
+            -- },
+        -- })
+    -- end
+    -- table.insert(settings.subCategorys[2].settings, {
+        -- controlType = CONTROL_TYPE.SECTION_HEADER,
+        -- name = CONTROL_AURA_GAINED,
+    -- })
+    -- table.insert(settings.subCategorys[2].settings, {
+        -- controlType = "CDD_EDITBOX_AND_BUTTON",
+        -- name = L["AddBuff"],
+        -- tooltip = L["AddBuffTooltip"],
+        -- button = {
+            -- buttonText = ADD,
+            -- OnButtonClick = function(control)
+                -- self:addAddedAura(control)
+             -- end,
+        -- },
+    -- })
+    -- for _, aura in pairs(self.addedAuras) do
+        -- local keyEditbox = string.format("CooldownDone.addedaura.%s.name", aura.id)
+        -- local name = formatNameIdTexture(aura.name, aura.id, aura.texture)
+        -- table.insert(settings.subCategorys[2].settings, {
+            -- controlType = "CDD_EDITBOX_AND_BUTTON",
+            -- settingType = SETTING_TYPE.ADDON_VARIABLE,
+            -- name = name,
+            -- key = keyEditbox,
+            -- default = "",
+            -- editboxTooltip = L["CustomName"],
+            -- button = {
+                -- buttonText = REMOVE,
+                -- OnButtonClick = function(control)
+                    -- self:removeAddedAura(control)
+                -- end,
+            -- },
+        -- })
+    -- end
 
     CooldownDone.category, _ = LibBlzSettings:RegisterVerticalSettingsTable(ADDON_NAME, settings, CooldownDoneDB, true)
 
