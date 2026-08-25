@@ -13,6 +13,7 @@
 ## SavedVariablesPerCharacter: CooldownDoneCharDB
 
 ## IconTexture: Interface\AddOns\CooldownDone\icon.tga
+## AddonCompartmentFunc: CooldownDone_OnAddonCompartmentClick
 ## X-Curse-Project-ID: 1250689
 
 Libs\libs.xml
