@@ -336,19 +336,12 @@ function CooldownDone:SPELL_UPDATE_COOLDOWN(spellID)
 end
 
 function CooldownDone:SPELL_UPDATE_CHARGES()
+    if not CooldownDoneDB or not CooldownDoneDB["CooldownDone.enable"] then return end
     if not CooldownDoneCharDB then return end
-    for k, v in pairs(CooldownDoneCharDB) do
-        if v then
-            local spellID = k:match("CooldownDone.spell.([%d]+).enable")
-            if spellID and tonumber(spellID) > 0 then
-                spellID = tonumber(spellID)
-                if self.cooldownFrames[spellID] then
-                    CooldownDone:debug("SUCH " .. spellID)
-                    if self.cooldownFrames[spellID].isChargedSpell and self.cooldownFrames[spellID]:GetScript("OnCooldownDone") then
-                        self:UNIT_SPELLCAST_SUCCEEDED(spellID, true)
-                    end
-                end
-            end
+    for spellID, cooldownFrame in pairs(self.cooldownFrames) do
+        if cooldownFrame.isChargedSpell
+            and cooldownFrame:GetScript("OnCooldownDone") then
+            self:UNIT_SPELLCAST_SUCCEEDED(spellID, true)
         end
     end
 end
