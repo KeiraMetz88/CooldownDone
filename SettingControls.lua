@@ -51,10 +51,8 @@ function CDDSettingsEditboxButtonControlMixin:Init(initializer)
     self.Editbox:SetTooltipFunc(initEditboxTooltip)
     self.Editbox:SetText(setting and setting:GetValue() or "")
     if setting then
-        self.Editbox:SetScript("OnTextChanged", function(editbox, userInput)
-            if userInput and not IMECandidatesFrame:IsShown() then  -- 限制: 用户输入/输入法框体未显示
-                self:OnEditboxValueChanged(editbox:GetText())
-            end
+        self.Editbox:SetScript("OnEditFocusLost", function(editbox)
+            self:OnEditboxValueChanged(editbox:GetText())
         end)
         local function OnEditboxSettingValueChanged(o, setting, value)
             self.Editbox:SetText(value)
@@ -73,6 +71,7 @@ end
 function CDDSettingsEditboxButtonControlMixin:OnEditboxValueChanged(value)
     local initializer = self:GetElementData();
     local setting = initializer.data.setting;
+    if not setting or setting:GetValue() == value then return end
     setting:SetValue(value);
     if type(initializer.data.OnEditboxValueChanged) == "function" then
         initializer.data.OnEditboxValueChanged(initializer.data.key, value)
@@ -80,7 +79,7 @@ function CDDSettingsEditboxButtonControlMixin:OnEditboxValueChanged(value)
 end
 
 function CDDSettingsEditboxButtonControlMixin:Release()
-    self.Editbox:SetScript("OnTextChanged", nil)
+    self.Editbox:SetScript("OnEditFocusLost", nil)
     self.Button:SetScript("OnClick", nil);
     SettingsListElementMixin.Release(self);
 end

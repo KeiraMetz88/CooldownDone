@@ -67,7 +67,6 @@ function CooldownDone:getPlayerSpellBookSpells()
             end
         end
     end
-    table.sort(self.spellBookSpells, function(a, b) return a.name:lower() < b.name:lower() end)
 end
 
 local function addAuraSound(trigger, spellID, soundFileIDOrName)
@@ -160,7 +159,7 @@ function CooldownDone:getEquippedItemSpells(prepareSettings)
     end
     for containerIndex = BACKPACK_CONTAINER, NUM_BAG_SLOTS do
         for slotIndex = 1, C_Container.GetContainerNumSlots(containerIndex) do
-            itemID = C_Container.GetContainerItemID(containerIndex, slotIndex)
+            local itemID = C_Container.GetContainerItemID(containerIndex, slotIndex)
             if itemID then
                 table.insert(itemIDs, {itemID = itemID, from = "container"})
             end
@@ -185,7 +184,6 @@ function CooldownDone:getEquippedItemSpells(prepareSettings)
             end
             itemLoadCount = itemLoadCount + 1
             if itemLoadCount >= #itemIDs then
-                table.sort(self.equippedItemSpells, function(a, b) return a.name:lower() < b.name:lower() end)
                 if prepareSettings then
                     self:prepareSettings()
                 end
@@ -274,9 +272,13 @@ function CooldownDone:UNIT_SPELLCAST_SUCCEEDED(spellID, immediately)
                 isChargedSpell = true
                 spellCooldownDuration = spellChargeDuration
             else
-                spellCooldownDuration = C_Spell_GetSpellCooldownDuration(spellID)
+                spellCooldownDuration = C_Spell_GetSpellCooldownDuration(spellID, true)
             end
             name = C_Spell_GetSpellName(spellID) or L["UnknownSpell"]
+        end
+        if not spellCooldownDuration then
+            self:cancelCooldown(spellID)
+            return
         end
         local keyName = string.format("CooldownDone.spell.%s.name", spellID)
         if CooldownDoneCharDB and CooldownDoneCharDB[keyName] and CooldownDoneCharDB[keyName] ~= "" then

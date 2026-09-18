@@ -200,6 +200,19 @@ function CooldownDone:removeAddedAura(control)
     end
 end
 
+local function sortedSpells(spells)
+    local entries = {}
+    for _, spell in pairs(spells) do
+        entries[#entries + 1] = spell
+    end
+    table.sort(entries, function(a, b)
+        local left, right = a.name:lower(), b.name:lower()
+        if left == right then return a.id < b.id end
+        return left < right
+    end)
+    return entries
+end
+
 function CooldownDone:prepareSettings()
     local voiceIDOptions = {}
     local voiceIDDefault = nil
@@ -315,7 +328,7 @@ function CooldownDone:prepareSettings()
         controlType = CONTROL_TYPE.SECTION_HEADER,
         name = L["SpellList"],
     })
-    for _, spell in pairs(self.spellBookSpells) do
+    for _, spell in ipairs(sortedSpells(self.spellBookSpells)) do
         local keyCheckbox = string.format("CooldownDone.spell.%s.enable", spell.id)
         local keyEditbox = string.format("CooldownDone.spell.%s.name", spell.id)
         local name = formatNameIdTexture(spell.name, spell.id, spell.texture)
@@ -344,7 +357,7 @@ function CooldownDone:prepareSettings()
         controlType = CONTROL_TYPE.SECTION_HEADER,
         name = L["EquippedItemList"],
     })
-    for _, spell in pairs(self.equippedItemSpells) do
+    for _, spell in ipairs(sortedSpells(self.equippedItemSpells)) do
         local keyCheckbox = string.format("CooldownDone.spell.%s.enable", spell.id)
         local keyEditbox = string.format("CooldownDone.spell.%s.name", spell.id)
         local itemName = formatNameIdTexture(spell.itemName, spell.itemID, spell.itemTexture)
