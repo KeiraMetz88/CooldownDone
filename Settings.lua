@@ -224,6 +224,9 @@ function CooldownDone:prepareSettings()
                 tooltip = L["EnableTooltip"],
                 key = "CooldownDone.enable",
                 default = true,
+                onValueChanged = function(enabled)
+                    self:onEnableChanged(enabled)
+                end,
             },
             {
                 controlType = CONTROL_TYPE.CHECKBOX,
@@ -323,6 +326,9 @@ function CooldownDone:prepareSettings()
             tooltip = ENABLE .. "/" .. DISABLE,
             key = keyCheckbox,
             default = false,
+            onValueChanged = function(enabled)
+                if not enabled then self:cancelCooldown(spell.id) end
+            end,
             template = "CDDSettingsCheckboxEditboxControlTemplate",
             editbox = {
                 controlType = CONTROL_TYPE.EDITBOX,
@@ -350,6 +356,9 @@ function CooldownDone:prepareSettings()
             tooltip = spellName .. "\n" .. ENABLE .. "/" .. DISABLE,
             key = keyCheckbox,
             default = false,
+            onValueChanged = function(enabled)
+                if not enabled then self:cancelCooldown(spell.id) end
+            end,
             template = "CDDSettingsCheckboxEditboxControlTemplate",
             editbox = {
                 controlType = CONTROL_TYPE.EDITBOX,

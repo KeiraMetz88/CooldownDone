@@ -6,6 +6,7 @@ CooldownDone.auras = {}
 CooldownDone.addedAuras = {}
 CooldownDone.auraSoundIDs = {}
 CooldownDone.cooldownFrames = {}
+CooldownDone.pendingCooldownUpdates = {}
 CooldownDone.Locale = {}
 CooldownDone.specialSpellIdGroups = {
     [-1] = {
@@ -70,6 +71,7 @@ function CooldownDone:getPlayerSpellBookSpells()
 end
 
 local function addAuraSound(trigger, spellID, soundFileIDOrName)
+    if CooldownDoneDB and CooldownDoneDB["CooldownDone.enable"] == false then return end
     if soundFileIDOrName == nil or soundFileIDOrName == "" then
         return
     end
@@ -94,6 +96,15 @@ function CooldownDone:getAuras()
         C_UnitAuras_RemoveAuraSound(auraSoundID)
     end
     table.wipe(self.auraSoundIDs)
+    local pendingSounds = {}
+    local function queueAuraSound(trigger, spellID, value, sourceID)
+        local key = tostring(trigger) .. "-" .. spellID
+        local previous = pendingSounds[key]
+        if not previous or sourceID == spellID or
+            (previous.sourceID ~= spellID and sourceID > previous.sourceID) then
+            pendingSounds[key] = {trigger = trigger, spellID = spellID, value = value, sourceID = sourceID}
+        end
+    end
     local auraID, showAuraID
     for k, v in pairs(CooldownDoneCharDB) do
         auraID = tonumber(k:match("CooldownDone.aura.([-]?[%d]+).name"))
@@ -108,10 +119,10 @@ function CooldownDone:getAuras()
             end
             if self.specialSpellIdGroups[auraID] then
                 for _, innerAuraID in pairs(self.specialSpellIdGroups[auraID]) do
-                    addAuraSound(Enum_UnitAuraSoundTrigger_Removed, innerAuraID, v)
+                    queueAuraSound(Enum_UnitAuraSoundTrigger_Removed, innerAuraID, v, auraID)
                 end
             else
-                addAuraSound(Enum_UnitAuraSoundTrigger_Removed, auraID, v)
+                queueAuraSound(Enum_UnitAuraSoundTrigger_Removed, auraID, v, auraID)
             end
         end
         auraID = tonumber(k:match("CooldownDone.addedaura.([-]?[%d]+).name"))
@@ -126,12 +137,15 @@ function CooldownDone:getAuras()
             end
             if self.specialSpellIdGroups[auraID] then
                 for _, innerAuraID in pairs(self.specialSpellIdGroups[auraID]) do
-                    addAuraSound(Enum_UnitAuraSoundTrigger_Added, innerAuraID, v)
+                    queueAuraSound(Enum_UnitAuraSoundTrigger_Added, innerAuraID, v, auraID)
                 end
             else
-                addAuraSound(Enum_UnitAuraSoundTrigger_Added, auraID, v)
+                queueAuraSound(Enum_UnitAuraSoundTrigger_Added, auraID, v, auraID)
             end
         end
+    end
+    for _, sound in pairs(pendingSounds) do
+        addAuraSound(sound.trigger, sound.spellID, sound.value)
     end
 end
 
@@ -215,12 +229,32 @@ function CooldownDone:speakTTS(text, typeStr)
     C_VoiceChat_SpeakText(ttsVoiceID, textPrepend .. " " .. text .. " " .. textAppend, ttsRate, ttsVolume, true)
 end
 
+function CooldownDone:cancelCooldown(spellID)
+    self.pendingCooldownUpdates[spellID] = nil
+    local cooldownFrame = self.cooldownFrames[spellID]
+    if cooldownFrame then
+        cooldownFrame:SetScript("OnCooldownDone", nil)
+        cooldownFrame:Clear()
+    end
+end
+
+function CooldownDone:onEnableChanged(enabled)
+    self:getAuras()
+    if not enabled then
+        table.wipe(self.pendingCooldownUpdates)
+        for spellID in pairs(self.cooldownFrames) do
+            self:cancelCooldown(spellID)
+        end
+    end
+end
+
 function CooldownDone:UNIT_SPELLCAST_SUCCEEDED(spellID, immediately)
     if not CooldownDoneDB or not CooldownDoneDB["CooldownDone.enable"] then return end
     local key = string.format("CooldownDone.spell.%s.enable", spellID)
     if not CooldownDoneCharDB or not CooldownDoneCharDB[key] then return end
 
     local function setCooldown(spellID)
+        if not CooldownDoneDB["CooldownDone.enable"] or not CooldownDoneCharDB[key] then return end
         local isEquippedItemSpell, isChargedSpell = false, false
         local name = ""
         local spellCooldownDuration
@@ -258,22 +292,28 @@ function CooldownDone:UNIT_SPELLCAST_SUCCEEDED(spellID, immediately)
             self.cooldownFrames[spellID]:Hide()
         end
         local cooldownFrame = self.cooldownFrames[spellID]
+        local function onCooldownDone()
+            cooldownFrame:SetScript("OnCooldownDone", nil)
+            if CooldownDoneCharDB[key] then
+                self:speakTTS(cooldownFrame.CooldownDoneTTSName)
+            end
+        end
         cooldownFrame.isChargedSpell = isChargedSpell
         cooldownFrame.CooldownDoneTTSName = name
         cooldownFrame:Clear()
         cooldownFrame:SetCooldownFromDurationObject(spellCooldownDuration, true)
         if not cooldownFrame:IsVisible() and cooldownFrame:GetScript("OnCooldownDone") then
-            self:speakTTS(cooldownFrame.CooldownDoneTTSName)
-            cooldownFrame:SetScript("OnCooldownDone", nil)
+            onCooldownDone()
         else
-            cooldownFrame:SetScript("OnCooldownDone", function()
-                self:speakTTS(cooldownFrame.CooldownDoneTTSName)
-                cooldownFrame:SetScript("OnCooldownDone", nil)
-            end)
+            cooldownFrame:SetScript("OnCooldownDone", onCooldownDone)
         end
     end
 
+    local token = {}
+    self.pendingCooldownUpdates[spellID] = token
     C_Timer.After(immediately and 0.01 or 0.5, function()
+        if self.pendingCooldownUpdates[spellID] ~= token then return end
+        self.pendingCooldownUpdates[spellID] = nil
         setCooldown(spellID)
     end)
 end
