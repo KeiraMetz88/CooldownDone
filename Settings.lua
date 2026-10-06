@@ -241,6 +241,7 @@ function CooldownDone:prepareSettings()
                     self:onEnableChanged(enabled)
                 end,
             },
+            --[[
             {
                 controlType = CONTROL_TYPE.CHECKBOX,
                 settingType = SETTING_TYPE.ADDON_VARIABLE,
@@ -249,6 +250,7 @@ function CooldownDone:prepareSettings()
                 key = "CooldownDone.debug",
                 default = false,
             },
+            ]]
             {
                 controlType = CONTROL_TYPE.EDITBOX,
                 settingType = SETTING_TYPE.ADDON_VARIABLE,

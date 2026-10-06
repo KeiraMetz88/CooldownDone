@@ -43,7 +43,7 @@ local function prepareDB()
 end
 
 function CooldownDone:debug(val)
-    if not CooldownDoneDB or not CooldownDoneDB["CooldownDone.debug"] then return end
+    if true or not CooldownDoneDB or not CooldownDoneDB["CooldownDone.debug"] then return end
     print("CDD(" .. GetTime() .. "): " .. val)
 end
 
@@ -268,13 +268,25 @@ function CooldownDone:UNIT_SPELLCAST_SUCCEEDED(spellID, immediately)
         end
         if not isEquippedItemSpell then
             local spellChargeDuration = C_Spell_GetSpellChargeDuration(spellID)
-            if spellChargeDuration then
+            local chargeInfo = spellChargeDuration and C_Spell.GetSpellCharges(spellID)
+            if spellChargeDuration and chargeInfo and chargeInfo.maxCharges > 1 then
                 isChargedSpell = true
                 spellCooldownDuration = spellChargeDuration
             else
                 spellCooldownDuration = C_Spell_GetSpellCooldownDuration(spellID, true)
             end
             name = C_Spell_GetSpellName(spellID) or L["UnknownSpell"]
+            local trackedFrame = self.cooldownFrames[spellID]
+            if immediately and not isChargedSpell and trackedFrame
+                and trackedFrame:GetScript("OnCooldownDone") then
+                local cooldownInfo = C_Spell.GetSpellCooldown(spellID)
+                if cooldownInfo and not cooldownInfo.isActive then
+                    local onCooldownDone = trackedFrame:GetScript("OnCooldownDone")
+                    onCooldownDone(trackedFrame)
+                    self:cancelCooldown(spellID)
+                    return
+                end
+            end
         end
         if not spellCooldownDuration then
             self:cancelCooldown(spellID)
@@ -291,7 +303,7 @@ function CooldownDone:UNIT_SPELLCAST_SUCCEEDED(spellID, immediately)
             self.cooldownFrames[spellID]:SetHideCountdownNumbers(true)
             self.cooldownFrames[spellID]:SetSize(1, 1)
             self.cooldownFrames[spellID]:SetAlpha(0)
-            self.cooldownFrames[spellID]:Hide()
+            self.cooldownFrames[spellID]:SetPoint("TOPLEFT", UIParent, "TOPLEFT")
         end
         local cooldownFrame = self.cooldownFrames[spellID]
         local function onCooldownDone()
@@ -302,13 +314,11 @@ function CooldownDone:UNIT_SPELLCAST_SUCCEEDED(spellID, immediately)
         end
         cooldownFrame.isChargedSpell = isChargedSpell
         cooldownFrame.CooldownDoneTTSName = name
+        cooldownFrame:SetScript("OnCooldownDone", nil)
         cooldownFrame:Clear()
         cooldownFrame:SetCooldownFromDurationObject(spellCooldownDuration, true)
-        if not cooldownFrame:IsVisible() and cooldownFrame:GetScript("OnCooldownDone") then
-            onCooldownDone()
-        else
-            cooldownFrame:SetScript("OnCooldownDone", onCooldownDone)
-        end
+        cooldownFrame:Show()
+        cooldownFrame:SetScript("OnCooldownDone", onCooldownDone)
     end
 
     local token = {}
@@ -325,6 +335,8 @@ function CooldownDone:SPELL_UPDATE_COOLDOWN(spellID)
     if spellID then
         local key = string.format("CooldownDone.spell.%s.enable", spellID)
         if not CooldownDoneCharDB[key] then return end
+        local cooldownInfo = C_Spell.GetSpellCooldown(spellID)
+        if cooldownInfo and cooldownInfo.isOnGCD then return end
         CooldownDone:debug("SUC " .. spellID)
         if self.cooldownFrames[spellID] then
             if self.cooldownFrames[spellID]:GetScript("OnCooldownDone") then
